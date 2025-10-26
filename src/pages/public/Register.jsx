@@ -304,7 +304,6 @@ export default function Register() {
 
         {/* Content - Always Clear */}
         <div className="position-relative z-2 d-flex flex-column align-items-center justify-content-center w-100 h-100 px-4">
-// In the Left Panel (Desktop) - Replace the logo section:
 <div className="text-center mb-4">
   <div className="d-flex align-items-center justify-content-center mx-auto">
     {/* System Logo */}
