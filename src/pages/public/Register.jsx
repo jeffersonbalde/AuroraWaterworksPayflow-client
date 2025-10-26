@@ -304,36 +304,50 @@ export default function Register() {
 
         {/* Content - Always Clear */}
         <div className="position-relative z-2 d-flex flex-column align-items-center justify-content-center w-100 h-100 px-4">
-          {/* Logo Section - FOR LARGE SCREENS (White text logo for dark background) */}
-          <div className="text-center mb-4">
-            <div className="d-flex align-items-center justify-content-center mx-auto">
-              {/* System Logo */}
-              <div className="d-flex align-items-center justify-content-center">
-                <img
-                  src={Logo}
-                  alt="Aurora Waterworks Logo"
-                  style={{
-                    width: "120px",
-                    height: "120px",
-                    objectFit: "contain",
-                  }}
-                />
-              </div>
+// In the Left Panel (Desktop) - Replace the logo section:
+<div className="text-center mb-4">
+  <div className="d-flex align-items-center justify-content-center mx-auto">
+    {/* System Logo */}
+    <div 
+      className="d-flex align-items-center justify-content-center"
+      style={{
+        filter: backgroundLoaded ? "blur(0px)" : "blur(8px)",
+        opacity: backgroundLoaded ? 1 : 0,
+        transition: "all 0.6s ease",
+      }}
+    >
+      <img
+        src={Logo}
+        alt="Aurora Waterworks Logo"
+        style={{
+          width: "120px",
+          height: "120px",
+          objectFit: "contain",
+        }}
+      />
+    </div>
 
-              {/* Text Logo - WHITE VERSION for dark background */}
-              <div className="d-flex align-items-center justify-content-center">
-                <img
-                  src={TextLogoWhite}
-                  alt="Aurora Waterworks Payflow"
-                  style={{
-                    width: "190px",
-                    height: "120px",
-                    objectFit: "contain",
-                  }}
-                />
-              </div>
-            </div>
-          </div>
+    {/* Text Logo - WHITE VERSION for dark background */}
+    <div 
+      className="d-flex align-items-center justify-content-center"
+      style={{
+        filter: backgroundLoaded ? "blur(0px)" : "blur(8px)",
+        opacity: backgroundLoaded ? 1 : 0,
+        transition: "all 0.6s ease",
+      }}
+    >
+      <img
+        src={TextLogoWhite}
+        alt="Aurora Waterworks Payflow"
+        style={{
+          width: "190px",
+          height: "120px",
+          objectFit: "contain",
+        }}
+      />
+    </div>
+  </div>
+</div>
 
           {/* Title */}
           <h4
@@ -455,34 +469,47 @@ export default function Register() {
               zIndex: 2,
             }}
           >
-            {/* Mobile Logo - Only show on small screens */}
-            <div className="d-lg-none text-center mb-4">
-              <div className="d-flex align-items-center justify-content-center flex-wrap">
-                <div className="d-flex align-items-center justify-content-center">
-                  <img
-                    src={Logo}
-                    alt="Aurora Waterworks Logo"
-                    style={{
-                      width: "90px",
-                      height: "90px",
-                      objectFit: "contain",
-                    }}
-                  />
-                </div>
-                <div className="d-flex align-items-center justify-content-center">
-                  <img
-                    src={TextLogoGreen}
-                    alt="Aurora Waterworks Payflow"
-                    style={{
-                      width: "140px",
-                      height: "80px",
-                      marginLeft: "-10px",
-                      objectFit: "contain",
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
+<div className="d-lg-none text-center mb-4">
+  <div className="d-flex align-items-center justify-content-center flex-wrap">
+    <div 
+      className="d-flex align-items-center justify-content-center"
+      style={{
+        filter: backgroundLoaded ? "blur(0px)" : "blur(8px)",
+        opacity: backgroundLoaded ? 1 : 0,
+        transition: "all 0.6s ease",
+      }}
+    >
+      <img
+        src={Logo}
+        alt="Aurora Waterworks Logo"
+        style={{
+          width: "90px",
+          height: "90px",
+          objectFit: "contain",
+        }}
+      />
+    </div>
+    <div 
+      className="d-flex align-items-center justify-content-center"
+      style={{
+        filter: backgroundLoaded ? "blur(0px)" : "blur(8px)",
+        opacity: backgroundLoaded ? 1 : 0,
+        transition: "all 0.6s ease",
+      }}
+    >
+      <img
+        src={TextLogoGreen}
+        alt="Aurora Waterworks Payflow"
+        style={{
+          width: "140px",
+          height: "80px",
+          marginLeft: "-10px",
+          objectFit: "contain",
+        }}
+      />
+    </div>
+  </div>
+</div>
 
             {/* Header */}
             <div className="text-start mb-4">

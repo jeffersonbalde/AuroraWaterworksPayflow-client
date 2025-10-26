@@ -10,6 +10,8 @@ export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [backgroundLoaded, setBackgroundLoaded] = useState(false);
+  const [logosLoaded, setLogosLoaded] = useState(false);
+  const [logoLoadCount, setLogoLoadCount] = useState(0);
   const navigate = useNavigate();
 
   // Enhanced theme with more colors from your old project
@@ -29,6 +31,17 @@ export default function Login() {
     img.src = LoginBackground;
     img.onload = () => setBackgroundLoaded(true);
   }, []);
+
+  // Handle logo loading
+  const handleLogoLoad = () => {
+    setLogoLoadCount(prev => {
+      const newCount = prev + 1;
+      if (newCount === 2) { // Both logos loaded
+        setLogosLoaded(true);
+      }
+      return newCount;
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -84,7 +97,10 @@ export default function Login() {
             style={{
               width: "clamp(120px, 20vw, 120px)",
               height: "clamp(100px, 20vw, 120px)",
-              flexShrink: 0
+              flexShrink: 0,
+              filter: logosLoaded ? "blur(0px)" : "blur(8px)",
+              opacity: logosLoaded ? 1 : 0,
+              transition: "all 0.6s ease",
             }}
           >
             <img
@@ -95,6 +111,7 @@ export default function Login() {
                 height: "100%",
                 objectFit: "contain",
               }}
+              onLoad={handleLogoLoad}
             />
           </div>
           
@@ -105,6 +122,9 @@ export default function Login() {
               width: "clamp(150px, 25vw, 190px)",
               height: "clamp(80px, 20vw, 120px)",
               flexShrink: 0,
+              filter: logosLoaded ? "blur(0px)" : "blur(8px)",
+              opacity: logosLoaded ? 1 : 0,
+              transition: "all 0.6s ease",
             }}
           >
             <img
@@ -117,6 +137,7 @@ export default function Login() {
                 marginLeft: "-80px",
                 marginTop: "10px",
               }}
+              onLoad={handleLogoLoad}
             />
           </div>
         </div>
@@ -131,6 +152,9 @@ export default function Login() {
           border: `1px solid ${theme.borderColor}`,
           zIndex: 10,
           animation: "fadeIn 0.6s ease-in-out",
+          opacity: backgroundLoaded && logosLoaded ? 1 : 0,
+          transform: backgroundLoaded && logosLoaded ? "translateY(0)" : "translateY(20px)",
+          transition: "all 0.6s ease-in-out",
         }}
       >
         {/* Welcome Text - Inside white panel and left-aligned */}
@@ -159,7 +183,7 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Form */}
+        {/* Rest of your form remains the same */}
         <form onSubmit={handleSubmit}>
           {/* Email Field */}
           <div className="mb-3">
@@ -271,7 +295,7 @@ export default function Login() {
               fontSize: "1rem",
               transition: "all 0.3s ease-in-out",
               overflow: "hidden",
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)", // Dark shadow at bottom
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
             }}
             onMouseOver={(e) => {
               if (!isSubmitting) {
@@ -353,7 +377,7 @@ export default function Login() {
           opacity: 0.7;
           cursor: not-allowed;
           transform: none !important;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+          boxShadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
         }
 
         /* Input field hover effects */
