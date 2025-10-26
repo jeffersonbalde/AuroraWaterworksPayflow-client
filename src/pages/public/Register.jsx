@@ -267,7 +267,7 @@ export default function Register() {
       alert(
         "Registration submitted successfully! Your account is pending approval. You will receive an email once your account is activated."
       );
-      navigate("/login");
+      navigate("/");
     }, 2000);
   };
 
@@ -644,461 +644,299 @@ export default function Register() {
 
             {/* Form */}
             <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label
-                  htmlFor="wwsId"
-                  className="form-label fw-semibold mb-2"
-                  style={{ fontSize: "0.9rem", color: theme.textSecondary }}
-                >
-                  WWS ID *
-                </label>
-                <div className="position-relative">
-                  <FaIdCard
-                    className="position-absolute top-50 translate-middle-y ms-3"
-                    size={16}
-                    style={{ color: "#6c757d" }}
-                  />
-                  <input
-                    type="text"
-                    name="wwsId"
-                    placeholder="WWS ID as shown on your water bill"
-                    className={`form-control ps-5 fw-semibold ${
-                      errors.wwsId ? "is-invalid" : ""
-                    }`}
-                    value={form.wwsId}
-                    onChange={handleInput}
-                    disabled={isSubmitting}
-                    required
-                    style={{
-                      backgroundColor: "#f8faf8",
-                      color: "#1a2a1a",
-                      border: `1px solid ${
-                        errors.wwsId ? "#dc3545" : "#c8d0c8"
-                      }`,
-                      borderRadius: "8px",
-                    }}
-                    id="wwsId"
-                  />
-                  {errors.wwsId && (
-                    <div className="invalid-feedback d-block">
-                      {errors.wwsId}
-                    </div>
-                  )}
-                </div>
-                <div className="form-text small mt-1">
-                  Your Waterworks System ID. Admin will verify this against
-                  existing records after registration.
-                </div>
-              </div>
 
-              {/* Service Type - LIGHTER HOVER EFFECTS */}
-              <div className="mb-3">
-                <label
-                  className="form-label fw-semibold mb-2"
-                  style={{
-                    fontSize: "0.9rem",
-                    color: theme.textSecondary,
-                  }}
-                >
-                  Service Type *
-                </label>
-                <div className="row g-2">
-                  {serviceTypes.map((service) => {
-                    const IconComponent = service.icon;
-                    const isSelected = form.serviceType === service.value;
-                    return (
-                      <div key={service.value} className="col-4">
-                        <input
-                          type="radio"
-                          name="serviceType"
-                          value={service.value}
-                          id={service.value}
-                          checked={isSelected}
-                          onChange={handleInput}
-                          className="d-none"
-                          disabled={isSubmitting}
-                        />
-                        <label
-                          htmlFor={service.value}
-                          className={`d-flex flex-column align-items-center justify-content-center p-2 rounded-3 border w-100 h-100 ${
-                            isSelected ? "border-2 shadow-sm" : "border-1"
-                          }`}
-                          style={{
-                            cursor: isSubmitting ? "not-allowed" : "pointer",
-                            borderColor: isSelected ? theme.primary : "#e0e6e0",
-                            backgroundColor: isSelected
-                              ? `${theme.primary}50`
-                              : "#f8faf8",
-                            color: isSelected
-                              ? theme.primaryDark
-                              : theme.textSecondary,
-                            transition: "all 0.3s ease",
-                            minHeight: "85px",
-                            transform: isSelected ? "scale(1.02)" : "scale(1)",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isSubmitting && !isSelected) {
-                              e.currentTarget.style.backgroundColor = `${theme.primary}08`; // Very light background
-                              e.currentTarget.style.borderColor = `${theme.primary}80`; // Light border color
-                              e.currentTarget.style.transform =
-                                "translateY(-1px)";
-                              e.currentTarget.style.boxShadow =
-                                "0 2px 8px rgba(51, 107, 52, 0.1)";
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isSubmitting && !isSelected) {
-                              e.currentTarget.style.backgroundColor = "#f8faf8";
-                              e.currentTarget.style.borderColor = "#e0e6e0";
-                              e.currentTarget.style.transform = "translateY(0)";
-                              e.currentTarget.style.boxShadow = "none";
-                            }
-                          }}
-                        >
-                          <IconComponent
-                            size={22}
-                            style={{
-                              color: isSelected
-                                ? theme.primary
-                                : theme.textSecondary,
-                              marginBottom: "6px",
-                              transition: "color 0.3s ease",
-                            }}
-                          />
-                          <span
-                            className="small fw-semibold text-center"
-                            style={{
-                              color: isSelected
-                                ? theme.primaryDark
-                                : theme.textSecondary,
-                              fontSize: "11px",
-                              lineHeight: "1.2",
-                              transition: "color 0.3s ease",
-                            }}
-                          >
-                            {service.label}
-                          </span>
-                        </label>
-                      </div>
-                    );
-                  })}
-                </div>
-                {errors.serviceType && (
-                  <div className="invalid-feedback d-block">
-                    {errors.serviceType}
-                  </div>
-                )}
-              </div>
+              {/* WWS ID */}
+<div className="mb-3 position-relative">
+  <label
+    htmlFor="wwsId"
+    className="form-label fw-semibold mb-2"
+    style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+  >
+    WWS ID *
+  </label>
+  <div className="input-group">
+    <span className="input-group-text bg-transparent border-end-0">
+      <FaIdCard className="text-muted" size={16} />
+    </span>
+    <input
+      type="text"
+      name="wwsId"
+      placeholder="WWS ID as shown on your water bill"
+      className={`form-control border-start-0 ps-2 fw-semibold ${
+        errors.wwsId ? "is-invalid" : ""
+      }`}
+      value={form.wwsId}
+      onChange={handleInput}
+      disabled={isSubmitting}
+      required
+      style={{
+        backgroundColor: "#f8faf8",
+        color: "#1a2a1a",
+        borderColor: errors.wwsId ? "#dc3545" : "#c8d0c8",
+      }}
+      id="wwsId"
+    />
+  </div>
+  {errors.wwsId && (
+    <div className="invalid-feedback d-block small mt-1">
+      {errors.wwsId}
+    </div>
+  )}
+  <div className="form-text small mt-1">
+    Your Waterworks System ID. Admin will verify this against existing records after registration.
+  </div>
+</div>
 
-              {/* Full Name */}
-              <div className="mb-3">
-                <label
-                  htmlFor="fullName"
-                  className="form-label fw-semibold mb-2"
-                  style={{
-                    fontSize: "0.9rem",
-                    color: theme.textSecondary,
-                  }}
-                >
-                  Full Name *
-                </label>
-                <div className="position-relative">
-                  <FaUser
-                    className="position-absolute top-50 translate-middle-y ms-3"
-                    size={16}
-                    style={{ color: "#6c757d" }}
-                  />
-                  <input
-                    type="text"
-                    name="fullName"
-                    placeholder="Enter your full name as on water bill"
-                    className={`form-control ps-5 fw-semibold ${
-                      errors.fullName ? "is-invalid" : ""
-                    }`}
-                    value={form.fullName}
-                    onChange={handleInput}
-                    disabled={isSubmitting}
-                    required
-                    style={{
-                      backgroundColor: "#f8faf8",
-                      color: "#1a2a1a",
-                      border: `1px solid ${
-                        errors.fullName ? "#dc3545" : "#c8d0c8"
-                      }`,
-                      borderRadius: "8px",
-                    }}
-                    id="fullName"
-                  />
-                  {errors.fullName && (
-                    <div className="invalid-feedback d-block">
-                      {errors.fullName}
-                    </div>
-                  )}
-                </div>
-              </div>
+{/* Full Name */}
+<div className="mb-3 position-relative">
+  <label
+    htmlFor="fullName"
+    className="form-label fw-semibold mb-2"
+    style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+  >
+    Full Name *
+  </label>
+  <div className="input-group">
+    <span className="input-group-text bg-transparent border-end-0">
+      <FaUser className="text-muted" size={16} />
+    </span>
+    <input
+      type="text"
+      name="fullName"
+      placeholder="Enter your full name as on water bill"
+      className={`form-control border-start-0 ps-2 fw-semibold ${
+        errors.fullName ? "is-invalid" : ""
+      }`}
+      value={form.fullName}
+      onChange={handleInput}
+      disabled={isSubmitting}
+      required
+      style={{
+        backgroundColor: "#f8faf8",
+        color: "#1a2a1a",
+        borderColor: errors.fullName ? "#dc3545" : "#c8d0c8",
+      }}
+      id="fullName"
+    />
+  </div>
+  {errors.fullName && (
+    <div className="invalid-feedback d-block small mt-1">
+      {errors.fullName}
+    </div>
+  )}
+</div>
 
-              {/* Email */}
-              <div className="mb-3">
-                <label
-                  htmlFor="email"
-                  className="form-label fw-semibold mb-2"
-                  style={{
-                    fontSize: "0.9rem",
-                    color: theme.textSecondary,
-                  }}
-                >
-                  Email Address *
-                </label>
-                <div className="position-relative">
-                  <FaEnvelope
-                    className="position-absolute top-50 translate-middle-y ms-3"
-                    size={16}
-                    style={{ color: "#6c757d" }}
-                  />
-                  <input
-                    type="email"
-                    name="email"
-                    placeholder="Enter your email address"
-                    className={`form-control ps-5 fw-semibold ${
-                      errors.email ? "is-invalid" : ""
-                    }`}
-                    value={form.email}
-                    onChange={handleInput}
-                    disabled={isSubmitting}
-                    required
-                    style={{
-                      backgroundColor: "#f8faf8",
-                      color: "#1a2a1a",
-                      border: `1px solid ${
-                        errors.email ? "#dc3545" : "#c8d0c8"
-                      }`,
-                      borderRadius: "8px",
-                    }}
-                    id="email"
-                  />
-                  {errors.email && (
-                    <div className="invalid-feedback d-block">
-                      {errors.email}
-                    </div>
-                  )}
-                </div>
-              </div>
+{/* Email */}
+<div className="mb-3 position-relative">
+  <label
+    htmlFor="email"
+    className="form-label fw-semibold mb-2"
+    style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+  >
+    Email Address *
+  </label>
+  <div className="input-group">
+    <span className="input-group-text bg-transparent border-end-0">
+      <FaEnvelope className="text-muted" size={16} />
+    </span>
+    <input
+      type="email"
+      name="email"
+      placeholder="Enter your email address"
+      className={`form-control border-start-0 ps-2 fw-semibold ${
+        errors.email ? "is-invalid" : ""
+      }`}
+      value={form.email}
+      onChange={handleInput}
+      disabled={isSubmitting}
+      required
+      style={{
+        backgroundColor: "#f8faf8",
+        color: "#1a2a1a",
+        borderColor: errors.email ? "#dc3545" : "#c8d0c8",
+      }}
+      id="email"
+    />
+  </div>
+  {errors.email && (
+    <div className="invalid-feedback d-block small mt-1">
+      {errors.email}
+    </div>
+  )}
+</div>
 
-              {/* Contact Number */}
-              <div className="mb-3">
-                <label
-                  htmlFor="contactNumber"
-                  className="form-label fw-semibold mb-2"
-                  style={{
-                    fontSize: "0.9rem",
-                    color: theme.textSecondary,
-                  }}
-                >
-                  Contact Number
-                </label>
-                <div className="position-relative">
-                  <FaPhone
-                    className="position-absolute top-50 translate-middle-y ms-3"
-                    size={16}
-                    style={{ color: "#6c757d" }}
-                  />
-                  <input
-                    type="text"
-                    name="contactNumber"
-                    placeholder="09XX-XXX-XXXX (11 digits)"
-                    value={formatContactDisplay(form.contactNumber)}
-                    onChange={handleInput}
-                    className={`form-control ps-5 fw-semibold ${
-                      errors.contactNumber ? "is-invalid" : ""
-                    }`}
-                    disabled={isSubmitting}
-                    maxLength={13} // 11 digits + 2 dashes
-                    style={{
-                      backgroundColor: "#f8faf8",
-                      color: "#1a2a1a",
-                      border: `1px solid ${
-                        errors.contactNumber ? "#dc3545" : "#c8d0c8"
-                      }`,
-                      borderRadius: "8px",
-                    }}
-                    id="contactNumber"
-                  />
-                  {errors.contactNumber && (
-                    <div className="invalid-feedback d-block">
-                      {errors.contactNumber}
-                    </div>
-                  )}
-                </div>
-                <div className="form-text small mt-1">
-                  Format: 09XX-XXX-XXXX (11 digits total, numbers only)
-                </div>
-              </div>
+{/* Contact Number */}
+<div className="mb-3 position-relative">
+  <label
+    htmlFor="contactNumber"
+    className="form-label fw-semibold mb-2"
+    style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+  >
+    Contact Number
+  </label>
+  <div className="input-group">
+    <span className="input-group-text bg-transparent border-end-0">
+      <FaPhone className="text-muted" size={16} />
+    </span>
+    <input
+      type="text"
+      name="contactNumber"
+      placeholder="09XX-XXX-XXXX (11 digits)"
+      value={formatContactDisplay(form.contactNumber)}
+      onChange={handleInput}
+      className={`form-control border-start-0 ps-2 fw-semibold ${
+        errors.contactNumber ? "is-invalid" : ""
+      }`}
+      disabled={isSubmitting}
+      required
+      maxLength={13}
+      style={{
+        backgroundColor: "#f8faf8",
+        color: "#1a2a1a",
+        borderColor: errors.contactNumber ? "#dc3545" : "#c8d0c8",
+      }}
+      id="contactNumber"
+    />
+  </div>
+  {errors.contactNumber && (
+    <div className="invalid-feedback d-block small mt-1">
+      {errors.contactNumber}
+    </div>
+  )}
+  <div className="form-text small mt-1">
+    Format: 09XX-XXX-XXXX (11 digits total, numbers only)
+  </div>
+</div>
 
-              {/* Address */}
-              <div className="mb-3">
-                <label
-                  htmlFor="address"
-                  className="form-label fw-semibold mb-2"
-                  style={{
-                    fontSize: "0.9rem",
-                    color: theme.textSecondary,
-                  }}
-                >
-                  Address
-                </label>
-                <div className="position-relative">
-                  <FaHome
-                    className="position-absolute top-50 translate-middle-y ms-3"
-                    size={16}
-                    style={{ color: "#6c757d" }}
-                  />
-                  <input
-                    type="text"
-                    name="address"
-                    placeholder="Enter your address"
-                    className="form-control ps-5 fw-semibold"
-                    value={form.address}
-                    onChange={handleInput}
-                    disabled={isSubmitting}
-                    style={{
-                      backgroundColor: "#f8faf8",
-                      color: "#1a2a1a",
-                      border: "1px solid #c8d0c8",
-                      borderRadius: "8px",
-                    }}
-                    id="address"
-                  />
-                </div>
-              </div>
+{/* Address */}
+<div className="mb-3 position-relative">
+  <label
+    htmlFor="address"
+    className="form-label fw-semibold mb-2"
+    style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+  >
+    Address
+  </label>
+  <div className="input-group">
+    <span className="input-group-text bg-transparent border-end-0">
+      <FaHome className="text-muted" size={16} />
+    </span>
+    <input
+      type="text"
+      name="address"
+      placeholder="Enter your address"
+      className="form-control border-start-0 ps-2 fw-semibold"
+      value={form.address}
+      onChange={handleInput}
+      disabled={isSubmitting}
+      required
+      style={{
+        backgroundColor: "#f8faf8",
+        color: "#1a2a1a",
+        borderColor: "#c8d0c8",
+      }}
+      id="address"
+    />
+  </div>
+</div>
 
-              {/* Password */}
-              <div className="mb-3">
-                <label
-                  htmlFor="password"
-                  className="form-label fw-semibold mb-2"
-                  style={{
-                    fontSize: "0.9rem",
-                    color: theme.textSecondary,
-                  }}
-                >
-                  Password *
-                </label>
-                <div className="position-relative">
-                  <FaLock
-                    className="position-absolute top-50 translate-middle-y ms-3"
-                    size={16}
-                    style={{ color: "#6c757d" }}
-                  />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    placeholder="Enter your password"
-                    className={`form-control ps-5 pe-5 fw-semibold ${
-                      errors.password ? "is-invalid" : ""
-                    }`}
-                    value={form.password}
-                    onChange={handleInput}
-                    disabled={isSubmitting}
-                    required
-                    style={{
-                      backgroundColor: "#f8faf8",
-                      color: "#1a2a1a",
-                      border: `1px solid ${
-                        errors.password ? "#dc3545" : "#c8d0c8"
-                      }`,
-                      borderRadius: "8px",
-                    }}
-                    id="password"
-                  />
-                  <span
-                    onClick={() =>
-                      !isSubmitting && setShowPassword(!showPassword)
-                    }
-                    className="position-absolute top-50 end-0 translate-middle-y me-3"
-                    style={{
-                      cursor: isSubmitting ? "not-allowed" : "pointer",
-                      zIndex: 10,
-                      color: "#6c757d",
-                    }}
-                  >
-                    {showPassword ? (
-                      <FaEyeSlash size={16} />
-                    ) : (
-                      <FaEye size={16} />
-                    )}
-                  </span>
-                  {errors.password && (
-                    <div className="invalid-feedback d-block">
-                      {errors.password}
-                    </div>
-                  )}
-                </div>
-              </div>
+{/* Password */}
+<div className="mb-3 position-relative">
+  <label
+    htmlFor="password"
+    className="form-label fw-semibold mb-2"
+    style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+  >
+    Password *
+  </label>
+  <div className="input-group">
+    <span className="input-group-text bg-transparent border-end-0">
+      <FaLock className="text-muted" size={16} />
+    </span>
+    <input
+      type={showPassword ? "text" : "password"}
+      name="password"
+      placeholder="Enter your password"
+      className={`form-control border-start-0 ps-2 fw-semibold ${
+        errors.password ? "is-invalid" : ""
+      }`}
+      value={form.password}
+      onChange={handleInput}
+      disabled={isSubmitting}
+      required
+      style={{
+        backgroundColor: "#f8faf8",
+        color: "#1a2a1a",
+        borderColor: errors.password ? "#dc3545" : "#c8d0c8",
+      }}
+      id="password"
+    />
+    <span className="input-group-text bg-transparent border-start-0">
+      <button
+        type="button"
+        className="btn btn-sm p-0 border-0 bg-transparent text-muted"
+        onClick={() => !isSubmitting && setShowPassword(!showPassword)}
+        disabled={isSubmitting}
+      >
+        {showPassword ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
+      </button>
+    </span>
+  </div>
+  {errors.password && (
+    <div className="invalid-feedback d-block small mt-1">
+      {errors.password}
+    </div>
+  )}
+</div>
 
-              {/* Confirm Password */}
-              <div className="mb-4">
-                <label
-                  htmlFor="confirmPassword"
-                  className="form-label fw-semibold mb-2"
-                  style={{
-                    fontSize: "0.9rem",
-                    color: theme.textSecondary,
-                  }}
-                >
-                  Confirm Password *
-                </label>
-                <div className="position-relative">
-                  <FaLock
-                    className="position-absolute top-50 translate-middle-y ms-3"
-                    size={16}
-                    style={{ color: "#6c757d" }}
-                  />
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    name="confirmPassword"
-                    placeholder="Confirm your password"
-                    className={`form-control ps-5 pe-5 fw-semibold ${
-                      errors.confirmPassword ? "is-invalid" : ""
-                    }`}
-                    value={form.confirmPassword}
-                    onChange={handleInput}
-                    disabled={isSubmitting}
-                    required
-                    style={{
-                      backgroundColor: "#f8faf8",
-                      color: "#1a2a1a",
-                      border: `1px solid ${
-                        errors.confirmPassword ? "#dc3545" : "#c8d0c8"
-                      }`,
-                      borderRadius: "8px",
-                    }}
-                    id="confirmPassword"
-                  />
-                  <span
-                    onClick={() =>
-                      !isSubmitting &&
-                      setShowConfirmPassword(!showConfirmPassword)
-                    }
-                    className="position-absolute top-50 end-0 translate-middle-y me-3"
-                    style={{
-                      cursor: isSubmitting ? "not-allowed" : "pointer",
-                      zIndex: 10,
-                      color: "#6c757d",
-                    }}
-                  >
-                    {showConfirmPassword ? (
-                      <FaEyeSlash size={16} />
-                    ) : (
-                      <FaEye size={16} />
-                    )}
-                  </span>
-                  {errors.confirmPassword && (
-                    <div className="invalid-feedback d-block">
-                      {errors.confirmPassword}
-                    </div>
-                  )}
-                </div>
-              </div>
+{/* Confirm Password */}
+<div className="mb-4 position-relative">
+  <label
+    htmlFor="confirmPassword"
+    className="form-label fw-semibold mb-2"
+    style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+  >
+    Confirm Password *
+  </label>
+  <div className="input-group">
+    <span className="input-group-text bg-transparent border-end-0">
+      <FaLock className="text-muted" size={16} />
+    </span>
+    <input
+      type={showConfirmPassword ? "text" : "password"}
+      name="confirmPassword"
+      placeholder="Confirm your password"
+      className={`form-control border-start-0 ps-2 fw-semibold ${
+        errors.confirmPassword ? "is-invalid" : ""
+      }`}
+      value={form.confirmPassword}
+      onChange={handleInput}
+      disabled={isSubmitting}
+      required
+      style={{
+        backgroundColor: "#f8faf8",
+        color: "#1a2a1a",
+        borderColor: errors.confirmPassword ? "#dc3545" : "#c8d0c8",
+      }}
+      id="confirmPassword"
+    />
+    <span className="input-group-text bg-transparent border-start-0">
+      <button
+        type="button"
+        className="btn btn-sm p-0 border-0 bg-transparent text-muted"
+        onClick={() => !isSubmitting && setShowConfirmPassword(!showConfirmPassword)}
+        disabled={isSubmitting}
+      >
+        {showConfirmPassword ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
+      </button>
+    </span>
+  </div>
+  {errors.confirmPassword && (
+    <div className="invalid-feedback d-block small mt-1">
+      {errors.confirmPassword}
+    </div>
+  )}
+</div>
 
               {/* Terms and Conditions - NEW FIELD */}
               <div className="mb-4">
