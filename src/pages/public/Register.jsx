@@ -10,28 +10,21 @@ import {
   FaIdCard,
   FaPhone,
   FaHome,
-  FaCamera,
-  FaTimes,
   FaBuilding,
   FaHouseUser,
   FaStore,
 } from "react-icons/fa";
 import LoginBackground from "../../assets/images/register-bg.jpg";
 import Logo from "../../assets/images/logo.png";
-import TextLogoWhite from "../../assets/images/text-logo-white.png";
-import TextLogoGreen from "../../assets/images/text-logo.png";
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [avatarPreview, setAvatarPreview] = useState(null);
-  const [avatarFile, setAvatarFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [backgroundLoaded, setBackgroundLoaded] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [isCheckingWws, setIsCheckingWws] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
     wwsId: "",
@@ -89,12 +82,6 @@ export default function Register() {
     if (!acceptedTerms)
       newErrors.terms = "You must accept the terms and conditions";
 
-    // REMOVED: WWS ID validation section
-    // if (form.wwsId && wwsValidation.valid === false) {
-    //   newErrors.wwsId = wwsValidation.message;
-    // }
-
-    // ... rest of validation remains the same
     // Email validation
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       newErrors.email = "Please enter a valid email address";
@@ -174,70 +161,15 @@ export default function Register() {
         setErrors((prev) => ({ ...prev, contactNumber: "" }));
       }
     }
-
-    // REMOVED: WWS ID validation check
-    // Check WWS ID validity when user stops typing
-    // if (name === "wwsId" && processedValue.length >= 3) {
-    //   clearTimeout(window.wwsCheckTimeout);
-    //   window.wwsCheckTimeout = setTimeout(() => {
-    //     checkWwsIdValidity(processedValue);
-    //   }, 1000);
-    // }
   };
 
-  // Format contact number for display
+  // Fixed contact number format: 09XX-XXX-XXXX
   const formatContactDisplay = (value) => {
     const numbers = value.replace(/\D/g, "");
-    if (numbers.length <= 3) return numbers;
-    if (numbers.length <= 6)
-      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-    return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(
-      6,
-      11
-    )}`;
-  };
-
-  // Avatar upload functionality
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        alert("Invalid File - Please select an image file (JPEG, PNG, etc.)");
-        return;
-      }
-
-      if (file.size > 5 * 1024 * 1024) {
-        alert("File Too Large - Image size should be less than 5MB");
-        return;
-      }
-
-      setAvatarFile(file);
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setAvatarPreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
-
-      alert("Avatar uploaded successfully");
-    }
-  };
-
-  const removeAvatar = () => {
-    if (
-      window.confirm("Are you sure you want to remove the uploaded avatar?")
-    ) {
-      setAvatarPreview(null);
-      setAvatarFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      alert("Avatar removed");
-    }
+    if (numbers.length <= 4) return numbers;
+    if (numbers.length <= 7)
+      return `${numbers.slice(0, 4)}-${numbers.slice(4)}`;
+    return `${numbers.slice(0, 4)}-${numbers.slice(4, 7)}-${numbers.slice(7, 11)}`;
   };
 
   const handleSubmit = async (e) => {
@@ -260,7 +192,6 @@ export default function Register() {
     // Simulate API call for registration
     setTimeout(() => {
       console.log("Registration submitted:", form);
-      console.log("Avatar file:", avatarFile);
       setIsSubmitting(false);
 
       // Show success message and redirect to login
@@ -304,49 +235,29 @@ export default function Register() {
 
         {/* Content - Always Clear */}
         <div className="position-relative z-2 d-flex flex-column align-items-center justify-content-center w-100 h-100 px-4">
-<div className="text-center mb-4">
-  <div className="d-flex align-items-center justify-content-center mx-auto">
-    {/* System Logo */}
-    <div 
-      className="d-flex align-items-center justify-content-center"
-      style={{
-        filter: backgroundLoaded ? "blur(0px)" : "blur(8px)",
-        opacity: backgroundLoaded ? 1 : 0,
-        transition: "all 0.6s ease",
-      }}
-    >
-      <img
-        src={Logo}
-        alt="Aurora Waterworks Logo"
-        style={{
-          width: "120px",
-          height: "120px",
-          objectFit: "contain",
-        }}
-      />
-    </div>
-
-    {/* Text Logo - WHITE VERSION for dark background */}
-    <div 
-      className="d-flex align-items-center justify-content-center"
-      style={{
-        filter: backgroundLoaded ? "blur(0px)" : "blur(8px)",
-        opacity: backgroundLoaded ? 1 : 0,
-        transition: "all 0.6s ease",
-      }}
-    >
-      <img
-        src={TextLogoWhite}
-        alt="Aurora Waterworks Payflow"
-        style={{
-          width: "190px",
-          height: "120px",
-          objectFit: "contain",
-        }}
-      />
-    </div>
-  </div>
-</div>
+          <div className="text-center mb-4">
+            <div className="d-flex align-items-center justify-content-center mx-auto">
+              {/* System Logo Only */}
+              <div
+                className="d-flex align-items-center justify-content-center"
+                style={{
+                  filter: backgroundLoaded ? "blur(0px)" : "blur(8px)",
+                  opacity: backgroundLoaded ? 1 : 0,
+                  transition: "all 0.6s ease",
+                }}
+              >
+                <img
+                  src={Logo}
+                  alt="Aurora Waterworks Logo"
+                  style={{
+                    width: "120px",
+                    height: "120px",
+                    objectFit: "contain",
+                  }}
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Title */}
           <h4
@@ -356,7 +267,7 @@ export default function Register() {
               fontSize: "1.8rem",
             }}
           >
-            Aurora Waterworks Payflow Portal
+            Aurora Waterworks Payflow
           </h4>
 
           {/* Description */}
@@ -468,47 +379,29 @@ export default function Register() {
               zIndex: 2,
             }}
           >
-<div className="d-lg-none text-center mb-4">
-  <div className="d-flex align-items-center justify-content-center flex-wrap">
-    <div 
-      className="d-flex align-items-center justify-content-center"
-      style={{
-        filter: backgroundLoaded ? "blur(0px)" : "blur(8px)",
-        opacity: backgroundLoaded ? 1 : 0,
-        transition: "all 0.6s ease",
-      }}
-    >
-      <img
-        src={Logo}
-        alt="Aurora Waterworks Logo"
-        style={{
-          width: "90px",
-          height: "90px",
-          objectFit: "contain",
-        }}
-      />
-    </div>
-    <div 
-      className="d-flex align-items-center justify-content-center"
-      style={{
-        filter: backgroundLoaded ? "blur(0px)" : "blur(8px)",
-        opacity: backgroundLoaded ? 1 : 0,
-        transition: "all 0.6s ease",
-      }}
-    >
-      <img
-        src={TextLogoGreen}
-        alt="Aurora Waterworks Payflow"
-        style={{
-          width: "140px",
-          height: "80px",
-          marginLeft: "-10px",
-          objectFit: "contain",
-        }}
-      />
-    </div>
-  </div>
-</div>
+            {/* Mobile Logo - Only show on small screens */}
+            <div className="d-lg-none text-center mb-4">
+              <div className="d-flex align-items-center justify-content-center">
+                <div
+                  className="d-flex align-items-center justify-content-center"
+                  style={{
+                    filter: backgroundLoaded ? "blur(0px)" : "blur(8px)",
+                    opacity: backgroundLoaded ? 1 : 0,
+                    transition: "all 0.6s ease",
+                  }}
+                >
+                  <img
+                    src={Logo}
+                    alt="Aurora Waterworks Logo"
+                    style={{
+                      width: "90px",
+                      height: "90px",
+                      objectFit: "contain",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
 
             {/* Header */}
             <div className="text-start mb-4">
@@ -537,434 +430,417 @@ export default function Register() {
               receive an email once activated.
             </div>
 
-            {/* Enhanced Avatar Upload Section */}
-            <div className="text-center mb-4">
-              <div className="position-relative d-inline-block">
-                <div
-                  className="avatar-container rounded-circle overflow-hidden border position-relative"
-                  style={{
-                    width: "120px",
-                    height: "120px",
-                    cursor: "pointer",
-                    border: `3px solid ${theme.primary} !important`,
-                    background: avatarPreview
-                      ? "transparent"
-                      : `linear-gradient(135deg, ${theme.backgroundLight} 0%, #e8f5e8 100%)`,
-                    boxShadow: avatarPreview
-                      ? "0 4px 15px rgba(51, 107, 52, 0.2)"
-                      : "0 4px 12px rgba(51, 107, 52, 0.15)",
-                    transition: "all 0.3s ease-in-out",
-                  }}
-                  onClick={handleAvatarClick}
-                  onMouseEnter={(e) => {
-                    // e.currentTarget.style.transform = "scale(1.05)";
-                    e.currentTarget.style.boxShadow =
-                      "0 6px 20px rgba(51, 107, 52, 0.25)";
-                  }}
-                  onMouseLeave={(e) => {
-                    // e.currentTarget.style.transform = "scale(1)";
-                    e.currentTarget.style.boxShadow = avatarPreview
-                      ? "0 4px 15px rgba(51, 107, 52, 0.2)"
-                      : "0 4px 12px rgba(51, 107, 52, 0.15)";
-                  }}
-                >
-                  {avatarPreview ? (
-                    <img
-                      src={avatarPreview}
-                      alt="Avatar Preview"
-                      className="w-100 h-100 object-fit-cover"
-                      style={{
-                        transition: "transform 0.5s ease",
-                      }}
-                    />
-                  ) : (
-                    <div className="w-100 h-100 d-flex flex-column align-items-center justify-content-center avatar-placeholder">
-                      <div
-                        className="rounded-circle d-flex align-items-center justify-content-center mb-2"
-                        style={{
-                          width: "50px",
-                          height: "50px",
-                          backgroundColor: theme.primary,
-                          color: "white",
-                        }}
-                      >
-                        <FaUser size={20} />
-                      </div>
-                      <span
-                        className="small fw-semibold"
-                        style={{
-                          color: theme.primary,
-                          fontSize: "11px",
-                        }}
-                      >
-                        Add Photo
-                      </span>
-                    </div>
-                  )}
-                  <div
-                    className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center camera-overlay"
-                    style={{
-                      backgroundColor: "rgba(51, 107, 52, 0.7)",
-                      opacity: 0,
-                      transition: "all 0.3s ease",
-                    }}
-                  >
-                    <FaCamera className="text-white" size={24} />
-                  </div>
-                </div>
-
-                {/* Fixed X Icon - Perfectly Centered */}
-                {avatarPreview && (
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-danger position-absolute rounded-circle d-flex align-items-center justify-content-center p-0 remove-avatar-btn"
-                    style={{
-                      top: "-6px",
-                      right: "-6px",
-                      width: "28px",
-                      height: "28px",
-                      border: "3px solid white",
-                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
-                      zIndex: 10,
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeAvatar();
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "scale(1.15)";
-                      e.currentTarget.style.boxShadow =
-                        "0 3px 12px rgba(0, 0, 0, 0.4)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "scale(1)";
-                      e.currentTarget.style.boxShadow =
-                        "0 2px 8px rgba(0, 0, 0, 0.3)";
-                    }}
-                  >
-                    <FaTimes
-                      size={12}
-                      style={{
-                        margin: 0,
-                        lineHeight: 1,
-                      }}
-                    />
-                  </button>
-                )}
-
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleAvatarChange}
-                  accept="image/*"
-                  className="d-none"
-                />
-              </div>
-              <p
-                className="small text-muted mt-3 mb-0"
-                style={{ fontSize: "12px" }}
-              >
-                Click to upload profile photo (JPEG, PNG - max 5MB)
-              </p>
-            </div>
-
             {/* Form */}
             <form onSubmit={handleSubmit}>
+              {/* Service Type */}
+              <div className="mb-3">
+                <label
+                  className="form-label fw-semibold mb-2"
+                  style={{
+                    fontSize: "0.9rem",
+                    color: theme.textSecondary,
+                  }}
+                >
+                  Service Type *
+                </label>
+                <div className="row g-2">
+                  {serviceTypes.map((service) => {
+                    const IconComponent = service.icon;
+                    const isSelected = form.serviceType === service.value;
+                    return (
+                      <div key={service.value} className="col-4">
+                        <input
+                          type="radio"
+                          name="serviceType"
+                          value={service.value}
+                          id={service.value}
+                          checked={isSelected}
+                          onChange={handleInput}
+                          className="d-none"
+                          disabled={isSubmitting}
+                        />
+                        <label
+                          htmlFor={service.value}
+                          className={`d-flex flex-column align-items-center justify-content-center p-2 rounded-3 border w-100 h-100 ${
+                            isSelected ? "border-2 shadow-sm" : "border-1"
+                          }`}
+                          style={{
+                            cursor: isSubmitting ? "not-allowed" : "pointer",
+                            borderColor: isSelected ? theme.primary : "#e0e6e0",
+                            backgroundColor: isSelected
+                              ? `${theme.primary}50`
+                              : "#f8faf8",
+                            color: isSelected
+                              ? theme.primaryDark
+                              : theme.textSecondary,
+                            transition: "all 0.3s ease",
+                            minHeight: "85px",
+                            transform: isSelected ? "scale(1.02)" : "scale(1)",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSubmitting && !isSelected) {
+                              e.currentTarget.style.backgroundColor = `${theme.primary}08`;
+                              e.currentTarget.style.borderColor = `${theme.primary}80`;
+                              e.currentTarget.style.transform =
+                                "translateY(-1px)";
+                              e.currentTarget.style.boxShadow =
+                                "0 2px 8px rgba(51, 107, 52, 0.1)";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSubmitting && !isSelected) {
+                              e.currentTarget.style.backgroundColor = "#f8faf8";
+                              e.currentTarget.style.borderColor = "#e0e6e0";
+                              e.currentTarget.style.transform = "translateY(0)";
+                              e.currentTarget.style.boxShadow = "none";
+                            }
+                          }}
+                        >
+                          <IconComponent
+                            size={22}
+                            style={{
+                              color: isSelected
+                                ? theme.primary
+                                : theme.textSecondary,
+                              marginBottom: "6px",
+                              transition: "color 0.3s ease",
+                            }}
+                          />
+                          <span
+                            className="small fw-semibold text-center"
+                            style={{
+                              color: isSelected
+                                ? theme.primaryDark
+                                : theme.textSecondary,
+                              fontSize: "11px",
+                              lineHeight: "1.2",
+                              transition: "color 0.3s ease",
+                            }}
+                          >
+                            {service.label}
+                          </span>
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+                {errors.serviceType && (
+                  <div className="invalid-feedback d-block">
+                    {errors.serviceType}
+                  </div>
+                )}
+              </div>
 
               {/* WWS ID */}
-<div className="mb-3 position-relative">
-  <label
-    htmlFor="wwsId"
-    className="form-label fw-semibold mb-2"
-    style={{ fontSize: "0.9rem", color: theme.textSecondary }}
-  >
-    WWS ID *
-  </label>
-  <div className="input-group">
-    <span className="input-group-text bg-transparent border-end-0">
-      <FaIdCard className="text-muted" size={16} />
-    </span>
-    <input
-      type="text"
-      name="wwsId"
-      placeholder="WWS ID as shown on your water bill"
-      className={`form-control border-start-0 ps-2 fw-semibold ${
-        errors.wwsId ? "is-invalid" : ""
-      }`}
-      value={form.wwsId}
-      onChange={handleInput}
-      disabled={isSubmitting}
-      required
-      style={{
-        backgroundColor: "#f8faf8",
-        color: "#1a2a1a",
-        borderColor: errors.wwsId ? "#dc3545" : "#c8d0c8",
-      }}
-      id="wwsId"
-    />
-  </div>
-  {errors.wwsId && (
-    <div className="invalid-feedback d-block small mt-1">
-      {errors.wwsId}
-    </div>
-  )}
-  <div className="form-text small mt-1">
-    Your Waterworks System ID. Admin will verify this against existing records after registration.
-  </div>
-</div>
+              <div className="mb-3 position-relative">
+                <label
+                  htmlFor="wwsId"
+                  className="form-label fw-semibold mb-2"
+                  style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+                >
+                  WWS ID *
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-transparent border-end-0">
+                    <FaIdCard className="text-muted" size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    name="wwsId"
+                    placeholder="WWS ID as shown on your water bill"
+                    className={`form-control border-start-0 ps-2 fw-semibold ${
+                      errors.wwsId ? "is-invalid" : ""
+                    }`}
+                    value={form.wwsId}
+                    onChange={handleInput}
+                    disabled={isSubmitting}
+                    required
+                    style={{
+                      backgroundColor: "#f8faf8",
+                      color: "#1a2a1a",
+                      borderColor: errors.wwsId ? "#dc3545" : "#c8d0c8",
+                    }}
+                    id="wwsId"
+                  />
+                </div>
+                {errors.wwsId && (
+                  <div className="invalid-feedback d-block small mt-1">
+                    {errors.wwsId}
+                  </div>
+                )}
+                <div className="form-text small mt-1">
+                  Your Waterworks System ID. Admin will verify this against
+                  existing records after registration.
+                </div>
+              </div>
 
-{/* Full Name */}
-<div className="mb-3 position-relative">
-  <label
-    htmlFor="fullName"
-    className="form-label fw-semibold mb-2"
-    style={{ fontSize: "0.9rem", color: theme.textSecondary }}
-  >
-    Full Name *
-  </label>
-  <div className="input-group">
-    <span className="input-group-text bg-transparent border-end-0">
-      <FaUser className="text-muted" size={16} />
-    </span>
-    <input
-      type="text"
-      name="fullName"
-      placeholder="Enter your full name as on water bill"
-      className={`form-control border-start-0 ps-2 fw-semibold ${
-        errors.fullName ? "is-invalid" : ""
-      }`}
-      value={form.fullName}
-      onChange={handleInput}
-      disabled={isSubmitting}
-      required
-      style={{
-        backgroundColor: "#f8faf8",
-        color: "#1a2a1a",
-        borderColor: errors.fullName ? "#dc3545" : "#c8d0c8",
-      }}
-      id="fullName"
-    />
-  </div>
-  {errors.fullName && (
-    <div className="invalid-feedback d-block small mt-1">
-      {errors.fullName}
-    </div>
-  )}
-</div>
+              {/* Full Name */}
+              <div className="mb-3 position-relative">
+                <label
+                  htmlFor="fullName"
+                  className="form-label fw-semibold mb-2"
+                  style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+                >
+                  Full Name *
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-transparent border-end-0">
+                    <FaUser className="text-muted" size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    name="fullName"
+                    placeholder="Enter your full name as on water bill"
+                    className={`form-control border-start-0 ps-2 fw-semibold ${
+                      errors.fullName ? "is-invalid" : ""
+                    }`}
+                    value={form.fullName}
+                    onChange={handleInput}
+                    disabled={isSubmitting}
+                    required
+                    style={{
+                      backgroundColor: "#f8faf8",
+                      color: "#1a2a1a",
+                      borderColor: errors.fullName ? "#dc3545" : "#c8d0c8",
+                    }}
+                    id="fullName"
+                  />
+                </div>
+                {errors.fullName && (
+                  <div className="invalid-feedback d-block small mt-1">
+                    {errors.fullName}
+                  </div>
+                )}
+              </div>
 
-{/* Email */}
-<div className="mb-3 position-relative">
-  <label
-    htmlFor="email"
-    className="form-label fw-semibold mb-2"
-    style={{ fontSize: "0.9rem", color: theme.textSecondary }}
-  >
-    Email Address *
-  </label>
-  <div className="input-group">
-    <span className="input-group-text bg-transparent border-end-0">
-      <FaEnvelope className="text-muted" size={16} />
-    </span>
-    <input
-      type="email"
-      name="email"
-      placeholder="Enter your email address"
-      className={`form-control border-start-0 ps-2 fw-semibold ${
-        errors.email ? "is-invalid" : ""
-      }`}
-      value={form.email}
-      onChange={handleInput}
-      disabled={isSubmitting}
-      required
-      style={{
-        backgroundColor: "#f8faf8",
-        color: "#1a2a1a",
-        borderColor: errors.email ? "#dc3545" : "#c8d0c8",
-      }}
-      id="email"
-    />
-  </div>
-  {errors.email && (
-    <div className="invalid-feedback d-block small mt-1">
-      {errors.email}
-    </div>
-  )}
-</div>
+              {/* Email */}
+              <div className="mb-3 position-relative">
+                <label
+                  htmlFor="email"
+                  className="form-label fw-semibold mb-2"
+                  style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+                >
+                  Email Address *
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-transparent border-end-0">
+                    <FaEnvelope className="text-muted" size={16} />
+                  </span>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Enter your email address"
+                    className={`form-control border-start-0 ps-2 fw-semibold ${
+                      errors.email ? "is-invalid" : ""
+                    }`}
+                    value={form.email}
+                    onChange={handleInput}
+                    disabled={isSubmitting}
+                    required
+                    style={{
+                      backgroundColor: "#f8faf8",
+                      color: "#1a2a1a",
+                      borderColor: errors.email ? "#dc3545" : "#c8d0c8",
+                    }}
+                    id="email"
+                  />
+                </div>
+                {errors.email && (
+                  <div className="invalid-feedback d-block small mt-1">
+                    {errors.email}
+                  </div>
+                )}
+              </div>
 
-{/* Contact Number */}
-<div className="mb-3 position-relative">
-  <label
-    htmlFor="contactNumber"
-    className="form-label fw-semibold mb-2"
-    style={{ fontSize: "0.9rem", color: theme.textSecondary }}
-  >
-    Contact Number
-  </label>
-  <div className="input-group">
-    <span className="input-group-text bg-transparent border-end-0">
-      <FaPhone className="text-muted" size={16} />
-    </span>
-    <input
-      type="text"
-      name="contactNumber"
-      placeholder="09XX-XXX-XXXX (11 digits)"
-      value={formatContactDisplay(form.contactNumber)}
-      onChange={handleInput}
-      className={`form-control border-start-0 ps-2 fw-semibold ${
-        errors.contactNumber ? "is-invalid" : ""
-      }`}
-      disabled={isSubmitting}
-      required
-      maxLength={13}
-      style={{
-        backgroundColor: "#f8faf8",
-        color: "#1a2a1a",
-        borderColor: errors.contactNumber ? "#dc3545" : "#c8d0c8",
-      }}
-      id="contactNumber"
-    />
-  </div>
-  {errors.contactNumber && (
-    <div className="invalid-feedback d-block small mt-1">
-      {errors.contactNumber}
-    </div>
-  )}
-  <div className="form-text small mt-1">
-    Format: 09XX-XXX-XXXX (11 digits total, numbers only)
-  </div>
-</div>
+              {/* Contact Number */}
+              <div className="mb-3 position-relative">
+                <label
+                  htmlFor="contactNumber"
+                  className="form-label fw-semibold mb-2"
+                  style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+                >
+                  Contact Number
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-transparent border-end-0">
+                    <FaPhone className="text-muted" size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    name="contactNumber"
+                    placeholder="09XX-XXX-XXXX (11 digits)"
+                    value={formatContactDisplay(form.contactNumber)}
+                    onChange={handleInput}
+                    className={`form-control border-start-0 ps-2 fw-semibold ${
+                      errors.contactNumber ? "is-invalid" : ""
+                    }`}
+                    disabled={isSubmitting}
+                    required
+                    maxLength={13} // 11 digits + 2 dashes
+                    style={{
+                      backgroundColor: "#f8faf8",
+                      color: "#1a2a1a",
+                      borderColor: errors.contactNumber ? "#dc3545" : "#c8d0c8",
+                    }}
+                    id="contactNumber"
+                  />
+                </div>
+                {errors.contactNumber && (
+                  <div className="invalid-feedback d-block small mt-1">
+                    {errors.contactNumber}
+                  </div>
+                )}
+                <div className="form-text small mt-1">
+                  Format: 09XX-XXX-XXXX (11 digits total, numbers only)
+                </div>
+              </div>
 
-{/* Address */}
-<div className="mb-3 position-relative">
-  <label
-    htmlFor="address"
-    className="form-label fw-semibold mb-2"
-    style={{ fontSize: "0.9rem", color: theme.textSecondary }}
-  >
-    Address
-  </label>
-  <div className="input-group">
-    <span className="input-group-text bg-transparent border-end-0">
-      <FaHome className="text-muted" size={16} />
-    </span>
-    <input
-      type="text"
-      name="address"
-      placeholder="Enter your address"
-      className="form-control border-start-0 ps-2 fw-semibold"
-      value={form.address}
-      onChange={handleInput}
-      disabled={isSubmitting}
-      required
-      style={{
-        backgroundColor: "#f8faf8",
-        color: "#1a2a1a",
-        borderColor: "#c8d0c8",
-      }}
-      id="address"
-    />
-  </div>
-</div>
+              {/* Address */}
+              <div className="mb-3 position-relative">
+                <label
+                  htmlFor="address"
+                  className="form-label fw-semibold mb-2"
+                  style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+                >
+                  Address
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-transparent border-end-0">
+                    <FaHome className="text-muted" size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    name="address"
+                    placeholder="Enter your address"
+                    className="form-control border-start-0 ps-2 fw-semibold"
+                    value={form.address}
+                    onChange={handleInput}
+                    disabled={isSubmitting}
+                    required
+                    style={{
+                      backgroundColor: "#f8faf8",
+                      color: "#1a2a1a",
+                      borderColor: "#c8d0c8",
+                    }}
+                    id="address"
+                  />
+                </div>
+              </div>
 
-{/* Password */}
-<div className="mb-3 position-relative">
-  <label
-    htmlFor="password"
-    className="form-label fw-semibold mb-2"
-    style={{ fontSize: "0.9rem", color: theme.textSecondary }}
-  >
-    Password *
-  </label>
-  <div className="input-group">
-    <span className="input-group-text bg-transparent border-end-0">
-      <FaLock className="text-muted" size={16} />
-    </span>
-    <input
-      type={showPassword ? "text" : "password"}
-      name="password"
-      placeholder="Enter your password"
-      className={`form-control border-start-0 ps-2 fw-semibold ${
-        errors.password ? "is-invalid" : ""
-      }`}
-      value={form.password}
-      onChange={handleInput}
-      disabled={isSubmitting}
-      required
-      style={{
-        backgroundColor: "#f8faf8",
-        color: "#1a2a1a",
-        borderColor: errors.password ? "#dc3545" : "#c8d0c8",
-      }}
-      id="password"
-    />
-    <span className="input-group-text bg-transparent border-start-0">
-      <button
-        type="button"
-        className="btn btn-sm p-0 border-0 bg-transparent text-muted"
-        onClick={() => !isSubmitting && setShowPassword(!showPassword)}
-        disabled={isSubmitting}
-      >
-        {showPassword ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
-      </button>
-    </span>
-  </div>
-  {errors.password && (
-    <div className="invalid-feedback d-block small mt-1">
-      {errors.password}
-    </div>
-  )}
-</div>
+              {/* Password */}
+              <div className="mb-3 position-relative">
+                <label
+                  htmlFor="password"
+                  className="form-label fw-semibold mb-2"
+                  style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+                >
+                  Password *
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-transparent border-end-0">
+                    <FaLock className="text-muted" size={16} />
+                  </span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Enter your password"
+                    className={`form-control border-start-0 ps-2 fw-semibold ${
+                      errors.password ? "is-invalid" : ""
+                    }`}
+                    value={form.password}
+                    onChange={handleInput}
+                    disabled={isSubmitting}
+                    required
+                    style={{
+                      backgroundColor: "#f8faf8",
+                      color: "#1a2a1a",
+                      borderColor: errors.password ? "#dc3545" : "#c8d0c8",
+                    }}
+                    id="password"
+                  />
+                  <span className="input-group-text bg-transparent border-start-0">
+                    <button
+                      type="button"
+                      className="btn btn-sm p-0 border-0 bg-transparent text-muted"
+                      onClick={() =>
+                        !isSubmitting && setShowPassword(!showPassword)
+                      }
+                      disabled={isSubmitting}
+                    >
+                      {showPassword ? (
+                        <FaEyeSlash size={14} />
+                      ) : (
+                        <FaEye size={14} />
+                      )}
+                    </button>
+                  </span>
+                </div>
+                {errors.password && (
+                  <div className="invalid-feedback d-block small mt-1">
+                    {errors.password}
+                  </div>
+                )}
+              </div>
 
-{/* Confirm Password */}
-<div className="mb-4 position-relative">
-  <label
-    htmlFor="confirmPassword"
-    className="form-label fw-semibold mb-2"
-    style={{ fontSize: "0.9rem", color: theme.textSecondary }}
-  >
-    Confirm Password *
-  </label>
-  <div className="input-group">
-    <span className="input-group-text bg-transparent border-end-0">
-      <FaLock className="text-muted" size={16} />
-    </span>
-    <input
-      type={showConfirmPassword ? "text" : "password"}
-      name="confirmPassword"
-      placeholder="Confirm your password"
-      className={`form-control border-start-0 ps-2 fw-semibold ${
-        errors.confirmPassword ? "is-invalid" : ""
-      }`}
-      value={form.confirmPassword}
-      onChange={handleInput}
-      disabled={isSubmitting}
-      required
-      style={{
-        backgroundColor: "#f8faf8",
-        color: "#1a2a1a",
-        borderColor: errors.confirmPassword ? "#dc3545" : "#c8d0c8",
-      }}
-      id="confirmPassword"
-    />
-    <span className="input-group-text bg-transparent border-start-0">
-      <button
-        type="button"
-        className="btn btn-sm p-0 border-0 bg-transparent text-muted"
-        onClick={() => !isSubmitting && setShowConfirmPassword(!showConfirmPassword)}
-        disabled={isSubmitting}
-      >
-        {showConfirmPassword ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
-      </button>
-    </span>
-  </div>
-  {errors.confirmPassword && (
-    <div className="invalid-feedback d-block small mt-1">
-      {errors.confirmPassword}
-    </div>
-  )}
-</div>
+              {/* Confirm Password */}
+              <div className="mb-4 position-relative">
+                <label
+                  htmlFor="confirmPassword"
+                  className="form-label fw-semibold mb-2"
+                  style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+                >
+                  Confirm Password *
+                </label>
+                <div className="input-group">
+                  <span className="input-group-text bg-transparent border-end-0">
+                    <FaLock className="text-muted" size={16} />
+                  </span>
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    placeholder="Confirm your password"
+                    className={`form-control border-start-0 ps-2 fw-semibold ${
+                      errors.confirmPassword ? "is-invalid" : ""
+                    }`}
+                    value={form.confirmPassword}
+                    onChange={handleInput}
+                    disabled={isSubmitting}
+                    required
+                    style={{
+                      backgroundColor: "#f8faf8",
+                      color: "#1a2a1a",
+                      borderColor: errors.confirmPassword
+                        ? "#dc3545"
+                        : "#c8d0c8",
+                    }}
+                    id="confirmPassword"
+                  />
+                  <span className="input-group-text bg-transparent border-start-0">
+                    <button
+                      type="button"
+                      className="btn btn-sm p-0 border-0 bg-transparent text-muted"
+                      onClick={() =>
+                        !isSubmitting &&
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      disabled={isSubmitting}
+                    >
+                      {showConfirmPassword ? (
+                        <FaEyeSlash size={14} />
+                      ) : (
+                        <FaEye size={14} />
+                      )}
+                    </button>
+                  </span>
+                </div>
+                {errors.confirmPassword && (
+                  <div className="invalid-feedback d-block small mt-1">
+                    {errors.confirmPassword}
+                  </div>
+                )}
+              </div>
 
-              {/* Terms and Conditions - NEW FIELD */}
+              {/* Terms and Conditions */}
               <div className="mb-4">
                 <div className="form-check">
                   <input
@@ -1036,9 +912,6 @@ export default function Register() {
                 }}
                 onMouseOver={(e) => {
                   if (!isSubmitting) {
-                    {
-                      /* REMOVED: && !wwsValidation.loading */
-                    }
                     e.target.style.backgroundColor = theme.primaryDark;
                     e.target.style.transform = "translateY(-2px)";
                     e.target.style.boxShadow = "0 6px 20px rgba(0, 0, 0, 0.4)";
@@ -1046,9 +919,6 @@ export default function Register() {
                 }}
                 onMouseOut={(e) => {
                   if (!isSubmitting) {
-                    {
-                      /* REMOVED: && !wwsValidation.loading */
-                    }
                     e.target.style.backgroundColor = theme.primary;
                     e.target.style.transform = "translateY(0)";
                     e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.3)";
@@ -1152,27 +1022,6 @@ export default function Register() {
           margin-top: 0.25rem;
         }
 
-        /* Enhanced Avatar Styles */
-        .avatar-container:hover .camera-overlay {
-          opacity: 1 !important;
-        }
-
-        .avatar-placeholder {
-          transition: all 0.3s ease;
-        }
-
-        .remove-avatar-btn {
-          transition: all 0.2s ease !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-        }
-
-        .remove-avatar-btn:focus {
-          outline: none;
-          box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25) !important;
-        }
-
         /* Enhanced Floating Elements Animation */
         .floating-elements {
           position: absolute;
@@ -1256,18 +1105,12 @@ export default function Register() {
           }
         }
 
-/* Mobile Responsive */
-@media (max-width: 991px) {
-  .form-container {
-    /* REMOVE these lines to enable animation on mobile */
-    /* opacity: 1 !important; */
-    /* transform: translateY(0) !important; */
-  }
-  
-  .floating-elements {
-    display: none;
-  }
-}
+        /* Mobile Responsive */
+        @media (max-width: 991px) {
+          .floating-elements {
+            display: none;
+          }
+        }
 
         @media (max-width: 768px) {
           .form-control {
