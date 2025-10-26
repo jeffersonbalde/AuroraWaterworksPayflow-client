@@ -1,0 +1,1446 @@
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import {
+  FaEnvelope,
+  FaLock,
+  FaEye,
+  FaEyeSlash,
+  FaSpinner,
+  FaUser,
+  FaIdCard,
+  FaPhone,
+  FaHome,
+  FaCamera,
+  FaTimes,
+  FaBuilding,
+  FaHouseUser,
+  FaStore,
+} from "react-icons/fa";
+import LoginBackground from "../../assets/images/register-bg.jpg";
+import Logo from "../../assets/images/logo.png";
+import TextLogoWhite from "../../assets/images/text-logo-white.png";
+import TextLogoGreen from "../../assets/images/text-logo.png";
+
+export default function Register() {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [backgroundLoaded, setBackgroundLoaded] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [isCheckingWws, setIsCheckingWws] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const [form, setForm] = useState({
+    wwsId: "",
+    fullName: "",
+    email: "",
+    contactNumber: "",
+    address: "",
+    serviceType: "residential", // New field
+    password: "",
+    confirmPassword: "",
+  });
+
+  const [errors, setErrors] = useState({});
+  const navigate = useNavigate();
+
+  const theme = {
+    primary: "#336B34",
+    primaryDark: "#1f3d1a",
+    primaryLight: "#336C35",
+    textPrimary: "#1a2a1a",
+    textSecondary: "#4a5c4a",
+    backgroundLight: "#f8faf8",
+    backgroundWhite: "#ffffff",
+    borderColor: "#e0e6e0",
+    success: "#28a745",
+    danger: "#dc3545",
+    warning: "#ffc107",
+  };
+
+  const serviceTypes = [
+    { value: "residential", label: "Residential", icon: FaHouseUser },
+    { value: "commercial", label: "Commercial", icon: FaStore },
+    { value: "institutional", label: "Institutional", icon: FaBuilding },
+  ];
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = LoginBackground;
+    img.onload = () => setBackgroundLoaded(true);
+    setIsMounted(true);
+  }, []);
+
+  // Enhanced validation function
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Required field validation
+    if (!form.wwsId.trim()) newErrors.wwsId = "WWS ID is required";
+    if (!form.fullName.trim()) newErrors.fullName = "Full name is required";
+    if (!form.email.trim()) newErrors.email = "Email is required";
+    if (!form.serviceType) newErrors.serviceType = "Service type is required";
+    if (!form.password) newErrors.password = "Password is required";
+    if (!form.confirmPassword)
+      newErrors.confirmPassword = "Please confirm your password";
+    if (!acceptedTerms)
+      newErrors.terms = "You must accept the terms and conditions";
+
+    // REMOVED: WWS ID validation section
+    // if (form.wwsId && wwsValidation.valid === false) {
+    //   newErrors.wwsId = wwsValidation.message;
+    // }
+
+    // ... rest of validation remains the same
+    // Email validation
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    // Password validation
+    if (form.password && form.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    // Password match validation
+    if (
+      form.password &&
+      form.confirmPassword &&
+      form.password !== form.confirmPassword
+    ) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    // Contact number validation - only numbers, exactly 11 digits
+    if (form.contactNumber && form.contactNumber.length > 0) {
+      const contactRegex = /^[0-9]{11}$/;
+      if (!contactRegex.test(form.contactNumber)) {
+        newErrors.contactNumber = "Contact number must be exactly 11 digits";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Enhanced input handler with validation
+  const handleInput = (e) => {
+    const { name, value } = e.target;
+
+    let processedValue = value;
+
+    // Special handling for contact number - only allow numbers and limit to 11 digits
+    if (name === "contactNumber") {
+      // Remove all non-digit characters and limit to 11 digits
+      processedValue = value.replace(/\D/g, "").slice(0, 11);
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: processedValue,
+    }));
+
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
+
+    // Real-time validation for specific fields
+    if (name === "email" && processedValue) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(processedValue)) {
+        setErrors((prev) => ({
+          ...prev,
+          email: "Please enter a valid email address",
+        }));
+      } else {
+        setErrors((prev) => ({ ...prev, email: "" }));
+      }
+    }
+
+    if (name === "contactNumber" && processedValue.length > 0) {
+      if (processedValue.length !== 11) {
+        setErrors((prev) => ({
+          ...prev,
+          contactNumber: "Contact number must be 11 digits",
+        }));
+      } else {
+        setErrors((prev) => ({ ...prev, contactNumber: "" }));
+      }
+    }
+
+    // REMOVED: WWS ID validation check
+    // Check WWS ID validity when user stops typing
+    // if (name === "wwsId" && processedValue.length >= 3) {
+    //   clearTimeout(window.wwsCheckTimeout);
+    //   window.wwsCheckTimeout = setTimeout(() => {
+    //     checkWwsIdValidity(processedValue);
+    //   }, 1000);
+    // }
+  };
+
+  // Format contact number for display
+  const formatContactDisplay = (value) => {
+    const numbers = value.replace(/\D/g, "");
+    if (numbers.length <= 3) return numbers;
+    if (numbers.length <= 6)
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(
+      6,
+      11
+    )}`;
+  };
+
+  // Avatar upload functionality
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        alert("Invalid File - Please select an image file (JPEG, PNG, etc.)");
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File Too Large - Image size should be less than 5MB");
+        return;
+      }
+
+      setAvatarFile(file);
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setAvatarPreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+
+      alert("Avatar uploaded successfully");
+    }
+  };
+
+  const removeAvatar = () => {
+    if (
+      window.confirm("Are you sure you want to remove the uploaded avatar?")
+    ) {
+      setAvatarPreview(null);
+      setAvatarFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      alert("Avatar removed");
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      // Scroll to first error
+      const firstError = Object.keys(errors)[0];
+      if (firstError) {
+        document.getElementById(firstError)?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Simulate API call for registration
+    setTimeout(() => {
+      console.log("Registration submitted:", form);
+      console.log("Avatar file:", avatarFile);
+      setIsSubmitting(false);
+
+      // Show success message and redirect to login
+      alert(
+        "Registration submitted successfully! Your account is pending approval. You will receive an email once your account is activated."
+      );
+      navigate("/login");
+    }, 2000);
+  };
+
+  const handleAlreadyHaveAccount = (e) => {
+    e.preventDefault();
+    navigate("/");
+  };
+
+  return (
+    <div className="min-vh-100 d-flex flex-column flex-lg-row position-relative">
+      {/* Left Panel - Branding with Background (Large screens only) */}
+      <div className="col-lg-6 d-none d-lg-flex flex-column justify-content-center align-items-center text-white p-5 position-fixed start-0 top-0 h-100">
+        {/* Background Image with Blur Effect */}
+        <div
+          className="position-absolute top-0 start-0 w-100 h-100"
+          style={{
+            backgroundImage: `url(${LoginBackground})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundColor: theme.backgroundLight,
+            filter: backgroundLoaded ? "blur(0px)" : "blur(8px)",
+            transition: "filter 0.6s ease",
+          }}
+        />
+
+        {/* Gradient Overlay */}
+        <div
+          className="position-absolute top-0 start-0 w-100 h-100"
+          style={{
+            background:
+              "linear-gradient(rgba(51, 107, 52, 0.85), rgba(51, 107, 52, 0.85))",
+          }}
+        />
+
+        {/* Content - Always Clear */}
+        <div className="position-relative z-2 d-flex flex-column align-items-center justify-content-center w-100 h-100 px-4">
+          {/* Logo Section - FOR LARGE SCREENS (White text logo for dark background) */}
+          <div className="text-center mb-4">
+            <div className="d-flex align-items-center justify-content-center mx-auto">
+              {/* System Logo */}
+              <div className="d-flex align-items-center justify-content-center">
+                <img
+                  src={Logo}
+                  alt="Aurora Waterworks Logo"
+                  style={{
+                    width: "120px",
+                    height: "120px",
+                    objectFit: "contain",
+                  }}
+                />
+              </div>
+
+              {/* Text Logo - WHITE VERSION for dark background */}
+              <div className="d-flex align-items-center justify-content-center">
+                <img
+                  src={TextLogoWhite}
+                  alt="Aurora Waterworks Payflow"
+                  style={{
+                    width: "190px",
+                    height: "120px",
+                    objectFit: "contain",
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Title */}
+          <h4
+            className="fw-bold text-center mb-3"
+            style={{
+              color: "white",
+              fontSize: "1.8rem",
+            }}
+          >
+            Aurora Waterworks Payflow Portal
+          </h4>
+
+          {/* Description */}
+          <p
+            className="text-center mx-auto"
+            style={{
+              fontSize: "16px",
+              maxWidth: "400px",
+              color: "rgba(255,255,255,0.9)",
+              lineHeight: "1.6",
+              marginBottom: "2rem",
+            }}
+          >
+            Welcome to Aurora Waterworks - Your trusted partner in water service
+            management. Register now to access your bills, monitor your water
+            consumption, and make convenient online payments.
+          </p>
+
+          {/* Features List */}
+          <div className="text-start" style={{ maxWidth: "400px" }}>
+            <div className="d-flex align-items-center mb-3">
+              <div
+                className="bg-white rounded-circle d-flex align-items-center justify-content-center me-3"
+                style={{ width: "30px", height: "30px" }}
+              >
+                <span style={{ color: theme.primary, fontSize: "14px" }}>
+                  ✓
+                </span>
+              </div>
+              <span style={{ fontSize: "14px" }}>
+                View and manage your water bills online
+              </span>
+            </div>
+            <div className="d-flex align-items-center mb-3">
+              <div
+                className="bg-white rounded-circle d-flex align-items-center justify-content-center me-3"
+                style={{ width: "30px", height: "30px" }}
+              >
+                <span style={{ color: theme.primary, fontSize: "14px" }}>
+                  ✓
+                </span>
+              </div>
+              <span style={{ fontSize: "14px" }}>
+                Monitor your water consumption in real-time
+              </span>
+            </div>
+            <div className="d-flex align-items-center mb-3">
+              <div
+                className="bg-white rounded-circle d-flex align-items-center justify-content-center me-3"
+                style={{ width: "30px", height: "30px" }}
+              >
+                <span style={{ color: theme.primary, fontSize: "14px" }}>
+                  ✓
+                </span>
+              </div>
+              <span style={{ fontSize: "14px" }}>
+                Secure online payment options
+              </span>
+            </div>
+            <div className="d-flex align-items-center">
+              <div
+                className="bg-white rounded-circle d-flex align-items-center justify-content-center me-3"
+                style={{ width: "30px", height: "30px" }}
+              >
+                <span style={{ color: theme.primary, fontSize: "14px" }}>
+                  ✓
+                </span>
+              </div>
+              <span style={{ fontSize: "14px" }}>
+                24/7 access to your account information
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Panel - Registration Form */}
+      <div className="col-12 col-lg-6 ms-lg-auto position-relative">
+        {/* Simple background for all screens */}
+        <div
+          className="position-absolute top-0 start-0 w-100 h-100"
+          style={{
+            backgroundColor: "#f0f8ff",
+            background:
+              "linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 50%, #dcedff 100%)",
+            opacity: 0.6,
+          }}
+        ></div>
+
+        {/* Enhanced floating elements with animation */}
+        <div className="position-absolute top-0 start-0 w-100 h-100 overflow-hidden floating-elements">
+          <div className="floating-icon floating-water-1">💧</div>
+          <div className="floating-icon floating-water-2">💧</div>
+          <div className="floating-icon floating-water-3">💧</div>
+          <div className="floating-icon floating-water-4">💧</div>
+          <div className="floating-icon floating-water-5">💧</div>
+          <div className="floating-icon floating-water-6">💧</div>
+        </div>
+
+        <div className="min-vh-100 d-flex align-items-center justify-content-center p-3 p-lg-4">
+          <div
+            className={`bg-white rounded-4 shadow-lg p-4 p-sm-5 w-100 form-container ${
+              isMounted ? "fade-in" : ""
+            }`}
+            style={{
+              maxWidth: "480px",
+              border: `1px solid ${theme.borderColor}`,
+              position: "relative",
+              zIndex: 2,
+            }}
+          >
+            {/* Mobile Logo - Only show on small screens */}
+            <div className="d-lg-none text-center mb-4">
+              <div className="d-flex align-items-center justify-content-center flex-wrap">
+                <div className="d-flex align-items-center justify-content-center">
+                  <img
+                    src={Logo}
+                    alt="Aurora Waterworks Logo"
+                    style={{
+                      width: "90px",
+                      height: "90px",
+                      objectFit: "contain",
+                    }}
+                  />
+                </div>
+                <div className="d-flex align-items-center justify-content-center">
+                  <img
+                    src={TextLogoGreen}
+                    alt="Aurora Waterworks Payflow"
+                    style={{
+                      width: "140px",
+                      height: "80px",
+                      marginLeft: "-10px",
+                      objectFit: "contain",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Header */}
+            <div className="text-start mb-4">
+              <h1
+                className="fw-bolder mb-2"
+                style={{ color: theme.primary, fontSize: "1.5rem" }}
+              >
+                Create Your Account
+              </h1>
+              <p
+                className="fw-semibold mb-0"
+                style={{
+                  lineHeight: "1.4",
+                  fontSize: "0.9rem",
+                  color: theme.primary,
+                }}
+              >
+                Register to access your water bills and make online payments.
+                Your account will be activated after verification.
+              </p>
+            </div>
+
+            {/* Approval Notice */}
+            <div className="alert alert-info text-center small mb-4">
+              <strong>Note:</strong> Your account requires verification. You'll
+              receive an email once activated.
+            </div>
+
+            {/* Enhanced Avatar Upload Section */}
+            <div className="text-center mb-4">
+              <div className="position-relative d-inline-block">
+                <div
+                  className="avatar-container rounded-circle overflow-hidden border position-relative"
+                  style={{
+                    width: "120px",
+                    height: "120px",
+                    cursor: "pointer",
+                    border: `3px solid ${theme.primary} !important`,
+                    background: avatarPreview
+                      ? "transparent"
+                      : `linear-gradient(135deg, ${theme.backgroundLight} 0%, #e8f5e8 100%)`,
+                    boxShadow: avatarPreview
+                      ? "0 4px 15px rgba(51, 107, 52, 0.2)"
+                      : "0 4px 12px rgba(51, 107, 52, 0.15)",
+                    transition: "all 0.3s ease-in-out",
+                  }}
+                  onClick={handleAvatarClick}
+                  onMouseEnter={(e) => {
+                    // e.currentTarget.style.transform = "scale(1.05)";
+                    e.currentTarget.style.boxShadow =
+                      "0 6px 20px rgba(51, 107, 52, 0.25)";
+                  }}
+                  onMouseLeave={(e) => {
+                    // e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.boxShadow = avatarPreview
+                      ? "0 4px 15px rgba(51, 107, 52, 0.2)"
+                      : "0 4px 12px rgba(51, 107, 52, 0.15)";
+                  }}
+                >
+                  {avatarPreview ? (
+                    <img
+                      src={avatarPreview}
+                      alt="Avatar Preview"
+                      className="w-100 h-100 object-fit-cover"
+                      style={{
+                        transition: "transform 0.5s ease",
+                      }}
+                    />
+                  ) : (
+                    <div className="w-100 h-100 d-flex flex-column align-items-center justify-content-center avatar-placeholder">
+                      <div
+                        className="rounded-circle d-flex align-items-center justify-content-center mb-2"
+                        style={{
+                          width: "50px",
+                          height: "50px",
+                          backgroundColor: theme.primary,
+                          color: "white",
+                        }}
+                      >
+                        <FaUser size={20} />
+                      </div>
+                      <span
+                        className="small fw-semibold"
+                        style={{
+                          color: theme.primary,
+                          fontSize: "11px",
+                        }}
+                      >
+                        Add Photo
+                      </span>
+                    </div>
+                  )}
+                  <div
+                    className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center camera-overlay"
+                    style={{
+                      backgroundColor: "rgba(51, 107, 52, 0.7)",
+                      opacity: 0,
+                      transition: "all 0.3s ease",
+                    }}
+                  >
+                    <FaCamera className="text-white" size={24} />
+                  </div>
+                </div>
+
+                {/* Fixed X Icon - Perfectly Centered */}
+                {avatarPreview && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-danger position-absolute rounded-circle d-flex align-items-center justify-content-center p-0 remove-avatar-btn"
+                    style={{
+                      top: "-6px",
+                      right: "-6px",
+                      width: "28px",
+                      height: "28px",
+                      border: "3px solid white",
+                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
+                      zIndex: 10,
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeAvatar();
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "scale(1.15)";
+                      e.currentTarget.style.boxShadow =
+                        "0 3px 12px rgba(0, 0, 0, 0.4)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
+                      e.currentTarget.style.boxShadow =
+                        "0 2px 8px rgba(0, 0, 0, 0.3)";
+                    }}
+                  >
+                    <FaTimes
+                      size={12}
+                      style={{
+                        margin: 0,
+                        lineHeight: 1,
+                      }}
+                    />
+                  </button>
+                )}
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleAvatarChange}
+                  accept="image/*"
+                  className="d-none"
+                />
+              </div>
+              <p
+                className="small text-muted mt-3 mb-0"
+                style={{ fontSize: "12px" }}
+              >
+                Click to upload profile photo (JPEG, PNG - max 5MB)
+              </p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit}>
+              <div className="mb-3">
+                <label
+                  htmlFor="wwsId"
+                  className="form-label fw-semibold mb-2"
+                  style={{ fontSize: "0.9rem", color: theme.textSecondary }}
+                >
+                  WWS ID *
+                </label>
+                <div className="position-relative">
+                  <FaIdCard
+                    className="position-absolute top-50 translate-middle-y ms-3"
+                    size={16}
+                    style={{ color: "#6c757d" }}
+                  />
+                  <input
+                    type="text"
+                    name="wwsId"
+                    placeholder="WWS ID as shown on your water bill"
+                    className={`form-control ps-5 fw-semibold ${
+                      errors.wwsId ? "is-invalid" : ""
+                    }`}
+                    value={form.wwsId}
+                    onChange={handleInput}
+                    disabled={isSubmitting}
+                    required
+                    style={{
+                      backgroundColor: "#f8faf8",
+                      color: "#1a2a1a",
+                      border: `1px solid ${
+                        errors.wwsId ? "#dc3545" : "#c8d0c8"
+                      }`,
+                      borderRadius: "8px",
+                    }}
+                    id="wwsId"
+                  />
+                  {errors.wwsId && (
+                    <div className="invalid-feedback d-block">
+                      {errors.wwsId}
+                    </div>
+                  )}
+                </div>
+                <div className="form-text small mt-1">
+                  Your Waterworks System ID. Admin will verify this against
+                  existing records after registration.
+                </div>
+              </div>
+
+              {/* Service Type - LIGHTER HOVER EFFECTS */}
+              <div className="mb-3">
+                <label
+                  className="form-label fw-semibold mb-2"
+                  style={{
+                    fontSize: "0.9rem",
+                    color: theme.textSecondary,
+                  }}
+                >
+                  Service Type *
+                </label>
+                <div className="row g-2">
+                  {serviceTypes.map((service) => {
+                    const IconComponent = service.icon;
+                    const isSelected = form.serviceType === service.value;
+                    return (
+                      <div key={service.value} className="col-4">
+                        <input
+                          type="radio"
+                          name="serviceType"
+                          value={service.value}
+                          id={service.value}
+                          checked={isSelected}
+                          onChange={handleInput}
+                          className="d-none"
+                          disabled={isSubmitting}
+                        />
+                        <label
+                          htmlFor={service.value}
+                          className={`d-flex flex-column align-items-center justify-content-center p-2 rounded-3 border w-100 h-100 ${
+                            isSelected ? "border-2 shadow-sm" : "border-1"
+                          }`}
+                          style={{
+                            cursor: isSubmitting ? "not-allowed" : "pointer",
+                            borderColor: isSelected ? theme.primary : "#e0e6e0",
+                            backgroundColor: isSelected
+                              ? `${theme.primary}50`
+                              : "#f8faf8",
+                            color: isSelected
+                              ? theme.primaryDark
+                              : theme.textSecondary,
+                            transition: "all 0.3s ease",
+                            minHeight: "85px",
+                            transform: isSelected ? "scale(1.02)" : "scale(1)",
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isSubmitting && !isSelected) {
+                              e.currentTarget.style.backgroundColor = `${theme.primary}08`; // Very light background
+                              e.currentTarget.style.borderColor = `${theme.primary}80`; // Light border color
+                              e.currentTarget.style.transform =
+                                "translateY(-1px)";
+                              e.currentTarget.style.boxShadow =
+                                "0 2px 8px rgba(51, 107, 52, 0.1)";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isSubmitting && !isSelected) {
+                              e.currentTarget.style.backgroundColor = "#f8faf8";
+                              e.currentTarget.style.borderColor = "#e0e6e0";
+                              e.currentTarget.style.transform = "translateY(0)";
+                              e.currentTarget.style.boxShadow = "none";
+                            }
+                          }}
+                        >
+                          <IconComponent
+                            size={22}
+                            style={{
+                              color: isSelected
+                                ? theme.primary
+                                : theme.textSecondary,
+                              marginBottom: "6px",
+                              transition: "color 0.3s ease",
+                            }}
+                          />
+                          <span
+                            className="small fw-semibold text-center"
+                            style={{
+                              color: isSelected
+                                ? theme.primaryDark
+                                : theme.textSecondary,
+                              fontSize: "11px",
+                              lineHeight: "1.2",
+                              transition: "color 0.3s ease",
+                            }}
+                          >
+                            {service.label}
+                          </span>
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+                {errors.serviceType && (
+                  <div className="invalid-feedback d-block">
+                    {errors.serviceType}
+                  </div>
+                )}
+              </div>
+
+              {/* Full Name */}
+              <div className="mb-3">
+                <label
+                  htmlFor="fullName"
+                  className="form-label fw-semibold mb-2"
+                  style={{
+                    fontSize: "0.9rem",
+                    color: theme.textSecondary,
+                  }}
+                >
+                  Full Name *
+                </label>
+                <div className="position-relative">
+                  <FaUser
+                    className="position-absolute top-50 translate-middle-y ms-3"
+                    size={16}
+                    style={{ color: "#6c757d" }}
+                  />
+                  <input
+                    type="text"
+                    name="fullName"
+                    placeholder="Enter your full name as on water bill"
+                    className={`form-control ps-5 fw-semibold ${
+                      errors.fullName ? "is-invalid" : ""
+                    }`}
+                    value={form.fullName}
+                    onChange={handleInput}
+                    disabled={isSubmitting}
+                    required
+                    style={{
+                      backgroundColor: "#f8faf8",
+                      color: "#1a2a1a",
+                      border: `1px solid ${
+                        errors.fullName ? "#dc3545" : "#c8d0c8"
+                      }`,
+                      borderRadius: "8px",
+                    }}
+                    id="fullName"
+                  />
+                  {errors.fullName && (
+                    <div className="invalid-feedback d-block">
+                      {errors.fullName}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="mb-3">
+                <label
+                  htmlFor="email"
+                  className="form-label fw-semibold mb-2"
+                  style={{
+                    fontSize: "0.9rem",
+                    color: theme.textSecondary,
+                  }}
+                >
+                  Email Address *
+                </label>
+                <div className="position-relative">
+                  <FaEnvelope
+                    className="position-absolute top-50 translate-middle-y ms-3"
+                    size={16}
+                    style={{ color: "#6c757d" }}
+                  />
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Enter your email address"
+                    className={`form-control ps-5 fw-semibold ${
+                      errors.email ? "is-invalid" : ""
+                    }`}
+                    value={form.email}
+                    onChange={handleInput}
+                    disabled={isSubmitting}
+                    required
+                    style={{
+                      backgroundColor: "#f8faf8",
+                      color: "#1a2a1a",
+                      border: `1px solid ${
+                        errors.email ? "#dc3545" : "#c8d0c8"
+                      }`,
+                      borderRadius: "8px",
+                    }}
+                    id="email"
+                  />
+                  {errors.email && (
+                    <div className="invalid-feedback d-block">
+                      {errors.email}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Contact Number */}
+              <div className="mb-3">
+                <label
+                  htmlFor="contactNumber"
+                  className="form-label fw-semibold mb-2"
+                  style={{
+                    fontSize: "0.9rem",
+                    color: theme.textSecondary,
+                  }}
+                >
+                  Contact Number
+                </label>
+                <div className="position-relative">
+                  <FaPhone
+                    className="position-absolute top-50 translate-middle-y ms-3"
+                    size={16}
+                    style={{ color: "#6c757d" }}
+                  />
+                  <input
+                    type="text"
+                    name="contactNumber"
+                    placeholder="09XX-XXX-XXXX (11 digits)"
+                    value={formatContactDisplay(form.contactNumber)}
+                    onChange={handleInput}
+                    className={`form-control ps-5 fw-semibold ${
+                      errors.contactNumber ? "is-invalid" : ""
+                    }`}
+                    disabled={isSubmitting}
+                    maxLength={13} // 11 digits + 2 dashes
+                    style={{
+                      backgroundColor: "#f8faf8",
+                      color: "#1a2a1a",
+                      border: `1px solid ${
+                        errors.contactNumber ? "#dc3545" : "#c8d0c8"
+                      }`,
+                      borderRadius: "8px",
+                    }}
+                    id="contactNumber"
+                  />
+                  {errors.contactNumber && (
+                    <div className="invalid-feedback d-block">
+                      {errors.contactNumber}
+                    </div>
+                  )}
+                </div>
+                <div className="form-text small mt-1">
+                  Format: 09XX-XXX-XXXX (11 digits total, numbers only)
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="mb-3">
+                <label
+                  htmlFor="address"
+                  className="form-label fw-semibold mb-2"
+                  style={{
+                    fontSize: "0.9rem",
+                    color: theme.textSecondary,
+                  }}
+                >
+                  Address
+                </label>
+                <div className="position-relative">
+                  <FaHome
+                    className="position-absolute top-50 translate-middle-y ms-3"
+                    size={16}
+                    style={{ color: "#6c757d" }}
+                  />
+                  <input
+                    type="text"
+                    name="address"
+                    placeholder="Enter your address"
+                    className="form-control ps-5 fw-semibold"
+                    value={form.address}
+                    onChange={handleInput}
+                    disabled={isSubmitting}
+                    style={{
+                      backgroundColor: "#f8faf8",
+                      color: "#1a2a1a",
+                      border: "1px solid #c8d0c8",
+                      borderRadius: "8px",
+                    }}
+                    id="address"
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="mb-3">
+                <label
+                  htmlFor="password"
+                  className="form-label fw-semibold mb-2"
+                  style={{
+                    fontSize: "0.9rem",
+                    color: theme.textSecondary,
+                  }}
+                >
+                  Password *
+                </label>
+                <div className="position-relative">
+                  <FaLock
+                    className="position-absolute top-50 translate-middle-y ms-3"
+                    size={16}
+                    style={{ color: "#6c757d" }}
+                  />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="Enter your password"
+                    className={`form-control ps-5 pe-5 fw-semibold ${
+                      errors.password ? "is-invalid" : ""
+                    }`}
+                    value={form.password}
+                    onChange={handleInput}
+                    disabled={isSubmitting}
+                    required
+                    style={{
+                      backgroundColor: "#f8faf8",
+                      color: "#1a2a1a",
+                      border: `1px solid ${
+                        errors.password ? "#dc3545" : "#c8d0c8"
+                      }`,
+                      borderRadius: "8px",
+                    }}
+                    id="password"
+                  />
+                  <span
+                    onClick={() =>
+                      !isSubmitting && setShowPassword(!showPassword)
+                    }
+                    className="position-absolute top-50 end-0 translate-middle-y me-3"
+                    style={{
+                      cursor: isSubmitting ? "not-allowed" : "pointer",
+                      zIndex: 10,
+                      color: "#6c757d",
+                    }}
+                  >
+                    {showPassword ? (
+                      <FaEyeSlash size={16} />
+                    ) : (
+                      <FaEye size={16} />
+                    )}
+                  </span>
+                  {errors.password && (
+                    <div className="invalid-feedback d-block">
+                      {errors.password}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div className="mb-4">
+                <label
+                  htmlFor="confirmPassword"
+                  className="form-label fw-semibold mb-2"
+                  style={{
+                    fontSize: "0.9rem",
+                    color: theme.textSecondary,
+                  }}
+                >
+                  Confirm Password *
+                </label>
+                <div className="position-relative">
+                  <FaLock
+                    className="position-absolute top-50 translate-middle-y ms-3"
+                    size={16}
+                    style={{ color: "#6c757d" }}
+                  />
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    placeholder="Confirm your password"
+                    className={`form-control ps-5 pe-5 fw-semibold ${
+                      errors.confirmPassword ? "is-invalid" : ""
+                    }`}
+                    value={form.confirmPassword}
+                    onChange={handleInput}
+                    disabled={isSubmitting}
+                    required
+                    style={{
+                      backgroundColor: "#f8faf8",
+                      color: "#1a2a1a",
+                      border: `1px solid ${
+                        errors.confirmPassword ? "#dc3545" : "#c8d0c8"
+                      }`,
+                      borderRadius: "8px",
+                    }}
+                    id="confirmPassword"
+                  />
+                  <span
+                    onClick={() =>
+                      !isSubmitting &&
+                      setShowConfirmPassword(!showConfirmPassword)
+                    }
+                    className="position-absolute top-50 end-0 translate-middle-y me-3"
+                    style={{
+                      cursor: isSubmitting ? "not-allowed" : "pointer",
+                      zIndex: 10,
+                      color: "#6c757d",
+                    }}
+                  >
+                    {showConfirmPassword ? (
+                      <FaEyeSlash size={16} />
+                    ) : (
+                      <FaEye size={16} />
+                    )}
+                  </span>
+                  {errors.confirmPassword && (
+                    <div className="invalid-feedback d-block">
+                      {errors.confirmPassword}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Terms and Conditions - NEW FIELD */}
+              <div className="mb-4">
+                <div className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id="terms"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    disabled={isSubmitting}
+                    style={{
+                      backgroundColor: acceptedTerms
+                        ? theme.primary
+                        : "#f8faf8",
+                      borderColor: acceptedTerms
+                        ? theme.primary
+                        : theme.borderColor,
+                    }}
+                  />
+                  <label
+                    className="form-check-label small"
+                    htmlFor="terms"
+                    style={{ color: theme.textSecondary }}
+                  >
+                    I agree to the{" "}
+                    <a
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: theme.primary }}
+                    >
+                      Terms and Conditions
+                    </a>{" "}
+                    and{" "}
+                    <a
+                      href="/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: theme.primary }}
+                    >
+                      Privacy Policy
+                    </a>
+                  </label>
+                </div>
+                {errors.terms && (
+                  <div
+                    className="invalid-feedback d-block"
+                    style={{ display: "block" }}
+                  >
+                    {errors.terms}
+                  </div>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="btn w-100 fw-semibold d-flex justify-content-center align-items-center position-relative"
+                disabled={isSubmitting}
+                style={{
+                  backgroundColor: theme.primary,
+                  color: "white",
+                  height: "43px",
+                  borderRadius: "8px",
+                  border: "none",
+                  fontSize: "1rem",
+                  transition: "all 0.3s ease-in-out",
+                  overflow: "hidden",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+                }}
+                onMouseOver={(e) => {
+                  if (!isSubmitting) {
+                    {
+                      /* REMOVED: && !wwsValidation.loading */
+                    }
+                    e.target.style.backgroundColor = theme.primaryDark;
+                    e.target.style.transform = "translateY(-2px)";
+                    e.target.style.boxShadow = "0 6px 20px rgba(0, 0, 0, 0.4)";
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!isSubmitting) {
+                    {
+                      /* REMOVED: && !wwsValidation.loading */
+                    }
+                    e.target.style.backgroundColor = theme.primary;
+                    e.target.style.transform = "translateY(0)";
+                    e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.3)";
+                  }
+                }}
+                onMouseDown={(e) => {
+                  if (!isSubmitting) {
+                    e.target.style.transform = "translateY(0)";
+                    e.target.style.boxShadow = "0 2px 6px rgba(0, 0, 0, 0.3)";
+                  }
+                }}
+              >
+                {isSubmitting ? (
+                  <>
+                    <FaSpinner className="spinner me-2" />
+                    Creating Account...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
+              </button>
+
+              {/* Login Link */}
+              <p
+                className="text-center mt-4 pt-3 mb-0 small fw-semibold border-top"
+                style={{
+                  color: theme.primary,
+                  paddingTop: "1rem",
+                  borderColor: theme.borderColor + " !important",
+                }}
+              >
+                Already have an account?{" "}
+                <a
+                  href="#"
+                  className="fw-bold text-decoration-underline"
+                  style={{ color: theme.primary }}
+                  onClick={handleAlreadyHaveAccount}
+                >
+                  Sign in here
+                </a>
+              </p>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Custom Styles */}
+      <style>{`
+        /* Form Container Animation */
+        .form-container {
+          opacity: 0;
+          transform: translateY(20px);
+          transition: all 0.6s ease-in-out;
+        }
+
+        .form-container.fade-in {
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        .spinner {
+          animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        .form-control:focus {
+          border-color: ${theme.primary};
+          box-shadow: 0 0 0 0.2rem ${theme.primary}25;
+        }
+        
+        .btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          transform: none !important;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+        }
+
+        /* Input field hover effects */
+        .form-control:hover:not(:focus):not(:disabled) {
+          border-color: ${theme.primary}80;
+        }
+
+        /* Link hover effects */
+        a.text-decoration-underline:hover {
+          opacity: 0.8;
+          cursor: pointer;
+        }
+
+        /* Error state styling */
+        .is-invalid {
+          border-color: #dc3545 !important;
+        }
+
+        .invalid-feedback {
+          color: #dc3545;
+          font-size: 0.875rem;
+          margin-top: 0.25rem;
+        }
+
+        /* Enhanced Avatar Styles */
+        .avatar-container:hover .camera-overlay {
+          opacity: 1 !important;
+        }
+
+        .avatar-placeholder {
+          transition: all 0.3s ease;
+        }
+
+        .remove-avatar-btn {
+          transition: all 0.2s ease !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+
+        .remove-avatar-btn:focus {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25) !important;
+        }
+
+        /* Enhanced Floating Elements Animation */
+        .floating-elements {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          pointer-events: none;
+          z-index: 1;
+        }
+
+        .floating-icon {
+          position: absolute;
+          font-size: 1.8rem;
+          opacity: 0;
+          animation: floatFast 6s ease-in-out infinite;
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        /* Water droplet positions with staggered animation */
+        .floating-water-1 {
+          top: 15%;
+          left: 8%;
+          animation-delay: 0s;
+        }
+        .floating-water-2 {
+          top: 25%;
+          right: 12%;
+          animation-delay: 1s;
+        }
+        .floating-water-3 {
+          bottom: 35%;
+          left: 15%;
+          animation-delay: 2s;
+        }
+        .floating-water-4 {
+          bottom: 20%;
+          right: 8%;
+          animation-delay: 3s;
+        }
+        .floating-water-5 {
+          top: 45%;
+          left: 20%;
+          animation-delay: 1.5s;
+        }
+        .floating-water-6 {
+          top: 60%;
+          right: 18%;
+          animation-delay: 2.5s;
+        }
+
+        /* Fast floating animation with opacity changes */
+        @keyframes floatFast {
+          0% {
+            transform: translateY(0px) translateX(0px) rotate(0deg) scale(0.8);
+            opacity: 0;
+          }
+          10% {
+            transform: translateY(-15px) translateX(5px) rotate(5deg) scale(1);
+            opacity: 0.15;
+          }
+          30% {
+            transform: translateY(-25px) translateX(-3px) rotate(-3deg) scale(1.1);
+            opacity: 0.2;
+          }
+          50% {
+            transform: translateY(-20px) translateX(8px) rotate(8deg) scale(1.05);
+            opacity: 0.18;
+          }
+          70% {
+            transform: translateY(-30px) translateX(-5px) rotate(-5deg) scale(1.15);
+            opacity: 0.22;
+          }
+          90% {
+            transform: translateY(-10px) translateX(3px) rotate(3deg) scale(0.9);
+            opacity: 0.12;
+          }
+          100% {
+            transform: translateY(0px) translateX(0px) rotate(0deg) scale(0.8);
+            opacity: 0;
+          }
+        }
+
+/* Mobile Responsive */
+@media (max-width: 991px) {
+  .form-container {
+    /* REMOVE these lines to enable animation on mobile */
+    /* opacity: 1 !important; */
+    /* transform: translateY(0) !important; */
+  }
+  
+  .floating-elements {
+    display: none;
+  }
+}
+
+        @media (max-width: 768px) {
+          .form-control {
+            font-size: 16px;
+          }
+        }
+
+        @media (max-width: 576px) {
+          .form-container {
+            padding: 1.5rem !important;
+          }
+        }
+
+        @media (min-width: 992px) {
+          .floating-icon {
+            font-size: 2rem;
+          }
+        }
+
+        /* Service type radio card hover effects */
+        input[type="radio"]:not(:disabled) + label:hover {
+          border-color: ${theme.primary} !important;
+          background-color: ${theme.primary}08 !important;
+          transform: translateY(-1px);
+        }
+
+        /* WWS ID validation spinner */
+        .spinner {
+          animation: spin 1s linear infinite;
+        }
+
+        /* Terms and conditions checkbox */
+        .form-check-input:checked {
+          background-color: ${theme.primary} !important;
+          border-color: ${theme.primary} !important;
+        }
+      `}</style>
+    </div>
+  );
+}
