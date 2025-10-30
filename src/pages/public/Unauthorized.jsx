@@ -1,8 +1,8 @@
-// src/pages/public/NotFound.jsx
+// src/pages/public/Unauthorized.jsx
 import { Link, useNavigate } from "react-router-dom";
-import { FaHome, FaArrowLeft, FaSearch, FaExclamationCircle } from "react-icons/fa";
+import { FaHome, FaArrowLeft, FaLock, FaExclamationTriangle } from "react-icons/fa";
 
-export default function NotFound() {
+export default function Unauthorized() {
   const navigate = useNavigate();
 
   const theme = {
@@ -14,6 +14,8 @@ export default function NotFound() {
     backgroundLight: "#f8faf8",
     backgroundWhite: "#ffffff",
     borderColor: "#e0e6e0",
+    warning: "#ffc107",
+    danger: "#dc3545",
   };
 
   return (
@@ -23,43 +25,40 @@ export default function NotFound() {
           <div className="col-md-8 col-lg-6">
             <div className="card border-0 shadow-lg rounded-4 overflow-hidden">
               <div className="card-body p-5 text-center">
-                {/* Error Icon */}
+                {/* Warning Icon */}
                 <div className="mb-4">
                   <div
                     className="rounded-circle d-inline-flex align-items-center justify-content-center mx-auto"
                     style={{
                       width: "100px",
                       height: "100px",
-                      backgroundColor: `${theme.primary}20`,
-                      border: `4px solid ${theme.primary}`,
+                      backgroundColor: `${theme.warning}20`,
+                      border: `4px solid ${theme.warning}`,
                     }}
                   >
-                    <FaSearch 
+                    <FaLock 
                       size={40} 
-                      style={{ color: theme.primary }}
+                      style={{ color: theme.warning }}
                     />
                   </div>
                 </div>
 
-                {/* Error Code */}
+                {/* Title */}
                 <h1
                   className="fw-bold mb-3"
-                  style={{ 
-                    color: theme.primary, 
-                    fontSize: "4rem",
-                    lineHeight: "1"
-                  }}
+                  style={{ color: theme.textPrimary, fontSize: "2.5rem" }}
                 >
-                  404
+                  Access Denied
                 </h1>
 
-                {/* Title */}
-                <h2
-                  className="fw-bold mb-3"
-                  style={{ color: theme.textPrimary }}
+                {/* Subtitle */}
+                <h3
+                  className="fw-semibold mb-4"
+                  style={{ color: theme.warning }}
                 >
-                  Page Not Found
-                </h2>
+                  <FaExclamationTriangle className="me-2" />
+                  Unauthorized Access
+                </h3>
 
                 {/* Message */}
                 <div className="mb-5">
@@ -67,14 +66,13 @@ export default function NotFound() {
                     className="mb-3"
                     style={{ color: theme.textSecondary, fontSize: "1.1rem" }}
                   >
-                    <FaExclamationCircle className="me-2" />
-                    The page you're looking for doesn't exist or has been moved.
+                    You don't have permission to access this page.
                   </p>
                   <p
                     className="mb-0"
                     style={{ color: theme.textSecondary, fontSize: "1rem" }}
                   >
-                    Please check the URL or navigate back to the homepage.
+                    This area requires specific user privileges. Please contact the system administrator if you believe this is an error.
                   </p>
                 </div>
 
@@ -139,7 +137,7 @@ export default function NotFound() {
                     className="small mb-2"
                     style={{ color: theme.textSecondary }}
                   >
-                    Can't find what you're looking for?
+                    Need help?
                   </p>
                   <div className="d-flex justify-content-center gap-4">
                     <a
@@ -150,13 +148,13 @@ export default function NotFound() {
                       Contact Support
                     </a>
                     <span style={{ color: theme.borderColor }}>|</span>
-                    <Link
-                      to="/register"
+                    <a
+                      href="tel:+63-XXX-XXX-XXXX"
                       className="text-decoration-none small fw-semibold"
                       style={{ color: theme.primary }}
                     >
-                      Create Account
-                    </Link>
+                      Call Administrator
+                    </a>
                   </div>
                 </div>
               </div>
@@ -203,7 +201,7 @@ export default function NotFound() {
           }
           
           h1 {
-            font-size: 3rem !important;
+            font-size: 2rem !important;
           }
         }
 

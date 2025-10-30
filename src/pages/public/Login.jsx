@@ -1,3 +1,4 @@
+// src/components/Login.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
@@ -7,6 +8,8 @@ import {
   FaEyeSlash,
   FaSpinner,
 } from "react-icons/fa";
+import { useAuth } from "../../contexts/AuthContext";
+import { showAlert, showToast } from "../../services/notificationService";
 import LoginBackground from "../../assets/images/login-bg2.png";
 import Logo from "../../assets/images/logo.png";
 
@@ -17,6 +20,7 @@ export default function Login() {
   const [backgroundLoaded, setBackgroundLoaded] = useState(false);
   const [logoLoaded, setLogoLoaded] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   // Enhanced theme with more colors from your old project
   const theme = {
@@ -38,12 +42,48 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation
+    if (!form.email || !form.password) {
+      showAlert.error("Validation Error", "Please fill in all fields");
+      return;
+    }
+
     setIsSubmitting(true);
-    // Simulate login process
-    setTimeout(() => {
+
+    try {
+      // Show loading alert
+      const loadingAlert = showAlert.loading("Signing you in...");
+
+      const result = await login(form.email, form.password);
+
+      // Close loading alert
+      showAlert.close();
+
+      if (result.success) {
+        // Show success toast
+        showToast.success(`Welcome back, ${result.user.name}!`);
+
+        // Navigate after a short delay
+        setTimeout(() => {
+          navigate(result.redirectTo);
+        }, 1500);
+      } else {
+        showAlert.error(
+          "Login Failed",
+          result.message || "Please check your credentials and try again."
+        );
+      }
+    } catch (error) {
+      showAlert.close();
+      showAlert.error(
+        "Connection Error",
+        "Unable to connect to the server. Please check your internet connection and try again."
+      );
+      console.error("Login error:", error);
+    } finally {
       setIsSubmitting(false);
-      console.log("Login attempted:", form);
-    }, 1500);
+    }
   };
 
   const handleInput = (e) => {
@@ -51,10 +91,13 @@ export default function Login() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleForgotPassword = (e) => {
+  const handleForgotPassword = async (e) => {
     e.preventDefault();
-    alert(
-      "Please contact Aurora Waterworks administration to reset your password."
+
+    const result = await showAlert.info(
+      "Forgot Password?",
+      "Please contact Aurora Waterworks administration to reset your password. They can assist you with account recovery.",
+      "Close"
     );
   };
 
@@ -103,12 +146,15 @@ export default function Login() {
       </div>
 
       {/* Welcome Text - Outside the form card in column layout */}
-      <div 
+      <div
         className="position-relative text-center mb-3"
-        style={{ 
+        style={{
           zIndex: 10,
           opacity: backgroundLoaded && logoLoaded ? 1 : 0,
-          transform: backgroundLoaded && logoLoaded ? "translateY(0)" : "translateY(10px)",
+          transform:
+            backgroundLoaded && logoLoaded
+              ? "translateY(0)"
+              : "translateY(10px)",
           transition: "all 0.6s ease-in-out",
           marginTop: "-0.3rem",
         }}
@@ -150,7 +196,10 @@ export default function Login() {
           border: `1px solid ${theme.borderColor}`,
           zIndex: 10,
           opacity: backgroundLoaded && logoLoaded ? 1 : 0,
-          transform: backgroundLoaded && logoLoaded ? "translateY(0)" : "translateY(20px)",
+          transform:
+            backgroundLoaded && logoLoaded
+              ? "translateY(0)"
+              : "translateY(20px)",
           transition: "all 0.6s ease-in-out",
         }}
       >

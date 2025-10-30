@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   FaEnvelope,
@@ -10,12 +10,11 @@ import {
   FaIdCard,
   FaPhone,
   FaHome,
-  FaBuilding,
-  FaHouseUser,
-  FaStore,
 } from "react-icons/fa";
 import LoginBackground from "../../assets/images/register-bg.jpg";
 import Logo from "../../assets/images/logo.png";
+import { useAuth } from "../../contexts/AuthContext";
+import { showAlert, showToast } from "../../services/notificationService";
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
@@ -23,8 +22,9 @@ export default function Register() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [backgroundLoaded, setBackgroundLoaded] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [isCheckingWws, setIsCheckingWws] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  const { register } = useAuth();
 
   const [form, setForm] = useState({
     wwsId: "",
@@ -32,7 +32,6 @@ export default function Register() {
     email: "",
     contactNumber: "",
     address: "",
-    serviceType: "residential", // New field
     password: "",
     confirmPassword: "",
   });
@@ -54,12 +53,6 @@ export default function Register() {
     warning: "#ffc107",
   };
 
-  const serviceTypes = [
-    { value: "residential", label: "Residential", icon: FaHouseUser },
-    { value: "commercial", label: "Commercial", icon: FaStore },
-    { value: "institutional", label: "Institutional", icon: FaBuilding },
-  ];
-
   useEffect(() => {
     const img = new Image();
     img.src = LoginBackground;
@@ -75,7 +68,6 @@ export default function Register() {
     if (!form.wwsId.trim()) newErrors.wwsId = "WWS ID is required";
     if (!form.fullName.trim()) newErrors.fullName = "Full name is required";
     if (!form.email.trim()) newErrors.email = "Email is required";
-    if (!form.serviceType) newErrors.serviceType = "Service type is required";
     if (!form.password) newErrors.password = "Password is required";
     if (!form.confirmPassword)
       newErrors.confirmPassword = "Please confirm your password";
@@ -169,14 +161,16 @@ export default function Register() {
     if (numbers.length <= 4) return numbers;
     if (numbers.length <= 7)
       return `${numbers.slice(0, 4)}-${numbers.slice(4)}`;
-    return `${numbers.slice(0, 4)}-${numbers.slice(4, 7)}-${numbers.slice(7, 11)}`;
+    return `${numbers.slice(0, 4)}-${numbers.slice(4, 7)}-${numbers.slice(
+      7,
+      11
+    )}`;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) {
-      // Scroll to first error
       const firstError = Object.keys(errors)[0];
       if (firstError) {
         document.getElementById(firstError)?.scrollIntoView({
@@ -184,27 +178,94 @@ export default function Register() {
           block: "center",
         });
       }
+      showAlert.error("Validation Error", "Please fill in all required fields correctly.");
       return;
     }
 
     setIsSubmitting(true);
 
-    // Simulate API call for registration
-    setTimeout(() => {
-      console.log("Registration submitted:", form);
-      setIsSubmitting(false);
+    try {
+      // Show loading alert
+      const loadingAlert = showAlert.loading("Creating your account...");
 
-      // Show success message and redirect to login
-      alert(
-        "Registration submitted successfully! Your account is pending approval. You will receive an email once your account is activated."
+      const result = await register({
+        wwsId: form.wwsId,
+        fullName: form.fullName,
+        email: form.email,
+        contactNumber: form.contactNumber,
+        address: form.address,
+        password: form.password,
+        password_confirmation: form.confirmPassword,
+      });
+
+      // Close loading alert
+      showAlert.close();
+
+      if (result.success) {
+        // Show success toast
+        showToast.success(`Welcome to Aurora Waterworks, ${result.user.name}!`);
+
+        // Navigate after a short delay
+        setTimeout(() => {
+          navigate(result.redirectTo);
+        }, 1500);
+      } else {
+        if (result.errors) {
+          // Handle field-specific errors
+          setErrors(result.errors);
+          showAlert.error(
+            "Registration Failed",
+            "Please check the form for errors and try again."
+          );
+        } else {
+          showAlert.error(
+            "Registration Failed",
+            result.message || "Unable to create account. Please try again."
+          );
+        }
+      }
+    } catch (error) {
+      showAlert.close();
+      showAlert.error(
+        "Connection Error",
+        "Unable to connect to the server. Please check your internet connection and try again."
       );
-      navigate("/");
-    }, 2000);
+      console.error("Registration error:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAlreadyHaveAccount = (e) => {
     e.preventDefault();
     navigate("/");
+  };
+
+  const handleTermsClick = async (e) => {
+    e.preventDefault();
+    
+    await showAlert.info(
+      "Terms and Conditions",
+      `
+      <div style="text-align: left; max-height: 300px; overflow-y: auto;">
+        <p><strong>Account Registration Terms:</strong></p>
+        <ul style="padding-left: 20px;">
+          <li>Your account requires verification by Aurora Waterworks administration</li>
+          <li>You must provide accurate WWS ID and personal information</li>
+          <li>Account activation may take 1-3 business days</li>
+          <li>You will receive email notification once your account is activated</li>
+          <li>Keep your login credentials secure and confidential</li>
+        </ul>
+        <p><strong>Privacy Policy:</strong></p>
+        <ul style="padding-left: 20px;">
+          <li>We collect only necessary information for account management</li>
+          <li>Your data is protected and will not be shared with third parties</li>
+          <li>We use your contact information for system notifications only</li>
+        </ul>
+      </div>
+      `,
+      "I Understand"
+    );
   };
 
   return (
@@ -432,105 +493,6 @@ export default function Register() {
 
             {/* Form */}
             <form onSubmit={handleSubmit}>
-              {/* Service Type */}
-              <div className="mb-3">
-                <label
-                  className="form-label fw-semibold mb-2"
-                  style={{
-                    fontSize: "0.9rem",
-                    color: theme.textSecondary,
-                  }}
-                >
-                  Service Type *
-                </label>
-                <div className="row g-2">
-                  {serviceTypes.map((service) => {
-                    const IconComponent = service.icon;
-                    const isSelected = form.serviceType === service.value;
-                    return (
-                      <div key={service.value} className="col-4">
-                        <input
-                          type="radio"
-                          name="serviceType"
-                          value={service.value}
-                          id={service.value}
-                          checked={isSelected}
-                          onChange={handleInput}
-                          className="d-none"
-                          disabled={isSubmitting}
-                        />
-                        <label
-                          htmlFor={service.value}
-                          className={`d-flex flex-column align-items-center justify-content-center p-2 rounded-3 border w-100 h-100 ${
-                            isSelected ? "border-2 shadow-sm" : "border-1"
-                          }`}
-                          style={{
-                            cursor: isSubmitting ? "not-allowed" : "pointer",
-                            borderColor: isSelected ? theme.primary : "#e0e6e0",
-                            backgroundColor: isSelected
-                              ? `${theme.primary}50`
-                              : "#f8faf8",
-                            color: isSelected
-                              ? theme.primaryDark
-                              : theme.textSecondary,
-                            transition: "all 0.3s ease",
-                            minHeight: "85px",
-                            transform: isSelected ? "scale(1.02)" : "scale(1)",
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isSubmitting && !isSelected) {
-                              e.currentTarget.style.backgroundColor = `${theme.primary}08`;
-                              e.currentTarget.style.borderColor = `${theme.primary}80`;
-                              e.currentTarget.style.transform =
-                                "translateY(-1px)";
-                              e.currentTarget.style.boxShadow =
-                                "0 2px 8px rgba(51, 107, 52, 0.1)";
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isSubmitting && !isSelected) {
-                              e.currentTarget.style.backgroundColor = "#f8faf8";
-                              e.currentTarget.style.borderColor = "#e0e6e0";
-                              e.currentTarget.style.transform = "translateY(0)";
-                              e.currentTarget.style.boxShadow = "none";
-                            }
-                          }}
-                        >
-                          <IconComponent
-                            size={22}
-                            style={{
-                              color: isSelected
-                                ? theme.primary
-                                : theme.textSecondary,
-                              marginBottom: "6px",
-                              transition: "color 0.3s ease",
-                            }}
-                          />
-                          <span
-                            className="small fw-semibold text-center"
-                            style={{
-                              color: isSelected
-                                ? theme.primaryDark
-                                : theme.textSecondary,
-                              fontSize: "11px",
-                              lineHeight: "1.2",
-                              transition: "color 0.3s ease",
-                            }}
-                          >
-                            {service.label}
-                          </span>
-                        </label>
-                      </div>
-                    );
-                  })}
-                </div>
-                {errors.serviceType && (
-                  <div className="invalid-feedback d-block">
-                    {errors.serviceType}
-                  </div>
-                )}
-              </div>
-
               {/* WWS ID */}
               <div className="mb-3 position-relative">
                 <label
@@ -866,18 +828,16 @@ export default function Register() {
                   >
                     I agree to the{" "}
                     <a
-                      href="/terms"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href="#"
+                      onClick={handleTermsClick}
                       style={{ color: theme.primary }}
                     >
                       Terms and Conditions
                     </a>{" "}
                     and{" "}
                     <a
-                      href="/privacy"
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href="#"
+                      onClick={handleTermsClick}
                       style={{ color: theme.primary }}
                     >
                       Privacy Policy
@@ -1128,13 +1088,6 @@ export default function Register() {
           .floating-icon {
             font-size: 2rem;
           }
-        }
-
-        /* Service type radio card hover effects */
-        input[type="radio"]:not(:disabled) + label:hover {
-          border-color: ${theme.primary} !important;
-          background-color: ${theme.primary}08 !important;
-          transform: translateY(-1px);
         }
 
         /* WWS ID validation spinner */
