@@ -17,7 +17,7 @@ import NotFound from "./pages/public/NotFound";
 import Unauthorized from "./pages/public/Unauthorized";
 
 // Import Layout
-import Layout from "./layout/layout";
+import Layout from './layout/layout';
 
 // Common Pages
 import Profile from "./pages/common/Profile";
