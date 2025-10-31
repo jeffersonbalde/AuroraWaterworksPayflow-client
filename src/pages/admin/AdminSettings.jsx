@@ -9,7 +9,8 @@ import {
   FaEye,
   FaEyeSlash,
   FaSpinner,
-  FaShieldAlt
+  FaShieldAlt,
+  FaCog
 } from "react-icons/fa";
 
 const AdminSettings = () => {
@@ -149,15 +150,27 @@ const AdminSettings = () => {
   };
 
   return (
-    <div className="container-fluid px-1 py-3">
+    <div className="container-fluid px-4 py-3">
       {/* Header */}
       <div className="text-center mb-4">
-        <div className="d-flex justify-content-center align-items-center mb-3">
-          <div className="text-start">
+        <div className="d-flex flex-column flex-md-row justify-content-center align-items-center mb-3">
+          <div
+            className="rounded-circle d-flex align-items-center justify-content-center mb-3 mb-md-0 me-md-3 flex-shrink-0"
+            style={{
+              width: "50px",
+              height: "50px",
+              background: "linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%)",
+              boxShadow: "0 4px 15px rgba(45, 89, 48, 0.4)",
+              transition: "all 0.3s ease",
+            }}
+          >
+            <FaCog className="text-white" size={22} />
+          </div>
+          <div className="text-center text-md-start">
             <h1 className="h3 mb-1 fw-bold" style={{ color: "var(--text-primary)" }}>
               Administrator Settings
             </h1>
-            <p className="text-muted mb-0 small">
+            <p className="text-muted mb-0">
               {user?.name} • System Administrator
             </p>
             <small className="text-muted">
@@ -169,7 +182,7 @@ const AdminSettings = () => {
 
       <div className="row justify-content-center">
         <div className="col-12 col-lg-8">
-          <div className="card border-0 shadow-sm">
+          <div className="card border-0" style={{  boxShadow: "0 8px 25px rgba(0, 0, 0, 0.15)", }}>
             <div className="card-header bg-transparent border-0 py-3">
               <div className="d-flex align-items-center">
                 <div className="rounded-circle d-flex align-items-center justify-content-center me-2" style={{
