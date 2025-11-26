@@ -1,97 +1,86 @@
-// src/pages/client/MyBills.jsx
+// src/pages/client/PaymentHistory.jsx
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../contexts/AuthContext";
-import { showAlert } from "../../services/notificationService";
+import { useAuth } from "../../../contexts/AuthContext";
+import { showAlert, showToast } from "../../../services/notificationService";
 import {
-  FaFileInvoice,
-  FaEye,
-  FaCreditCard,
-  FaCheckCircle,
-  FaClock,
-  FaExclamationCircle,
+  FaHistory,
+  FaReceipt,
   FaSyncAlt,
+  FaCheckCircle,
+  FaCreditCard,
+  FaStore,
 } from "react-icons/fa";
-import BillDetailsModal from "../admin_staff/BillingManagement/BillDetailsModal";
 
-const MyBills = () => {
+const PaymentHistory = () => {
   const { user, token } = useAuth();
-  const [bills, setBills] = useState([]);
-  const [filteredBills, setFilteredBills] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [filteredPayments, setFilteredPayments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedBill, setSelectedBill] = useState(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  
-  // Filter and pagination states
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [actionLock, setActionLock] = useState(false);
+
+  // Filter states
+  const [filter, setFilter] = useState("all");
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortField, setSortField] = useState("reading_date");
+  const [sortField, setSortField] = useState("payment_date");
   const [sortDirection, setSortDirection] = useState("desc");
 
   useEffect(() => {
-    fetchBills();
+    fetchPayments();
   }, []);
 
   useEffect(() => {
-    filterAndSortBills();
-  }, [bills, searchTerm, filterStatus, sortField, sortDirection]);
+    filterAndSortPayments();
+  }, [payments, filter, sortField, sortDirection]);
 
-  const fetchBills = async () => {
+  const fetchPayments = async () => {
+    if (actionLock) {
+      showToast.warning("Please wait until current action completes");
+      return;
+    }
+
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_LARAVEL_API}/client/bills`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_LARAVEL_API}/client/payments`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
-        setBills(data.bills || []);
+        setPayments(data.payments || []);
       } else {
-        throw new Error('Failed to fetch bills');
+        throw new Error("Failed to fetch payments");
       }
     } catch (error) {
-      console.error("Error fetching bills:", error);
-      showAlert.error("Error", "Failed to load bills");
-      setBills([]);
+      console.error("Error fetching payments:", error);
+      showAlert.error("Error", "Failed to load payment history");
+      setPayments([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const filterAndSortBills = () => {
-    let filtered = [...bills];
+  const filterAndSortPayments = () => {
+    let filtered = [...payments];
 
-    // Search filter
-    if (searchTerm.trim()) {
-      const loweredSearch = searchTerm.toLowerCase();
-      filtered = filtered.filter((bill) => {
-        const fieldsToSearch = [
-          bill.wws_id,
-          bill.meter_reader,
-          new Date(bill.reading_date).toLocaleDateString(),
-        ];
-        return fieldsToSearch.some(
-          (field) =>
-            typeof field === "string" &&
-            field.toLowerCase().includes(loweredSearch)
-        );
-      });
-    }
-
-    // Status filter
-    if (filterStatus !== "all") {
-      filtered = filtered.filter((bill) => bill.status === filterStatus);
+    // Payment method filter
+    if (filter !== "all") {
+      filtered = filtered.filter(
+        (payment) => payment.payment_method === filter
+      );
     }
 
     // Sorting
     filtered.sort((a, b) => {
       if (!sortField) return 0;
 
-      if (sortField === "reading_date" || sortField === "due_date") {
+      if (sortField === "payment_date" || sortField === "created_at") {
         const aDate = a[sortField] ? new Date(a[sortField]) : new Date(0);
         const bDate = b[sortField] ? new Date(b[sortField]) : new Date(0);
 
@@ -108,11 +97,12 @@ const MyBills = () => {
       return 0;
     });
 
-    setFilteredBills(filtered);
+    setFilteredPayments(filtered);
     setCurrentPage(1);
   };
 
   const handleSort = (field) => {
+    if (actionLock) return;
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
@@ -126,31 +116,20 @@ const MyBills = () => {
     return sortDirection === "asc" ? "fas fa-sort-up" : "fas fa-sort-down";
   };
 
-  const handlePayNow = (bill) => {
-    window.location.href = `/make-payment?bill=${bill.id}`;
-  };
-
-  const handleViewDetails = (bill) => {
-    setSelectedBill(bill);
-    setShowDetailsModal(true);
-  };
-
-  const getStatusBadge = (status, isOverdue) => {
-    if (isOverdue) {
-      return (
-        <span className="badge bg-danger small">
-          <FaExclamationCircle size={10} className="me-1" />
-          Overdue
-        </span>
-      );
-    }
-    
-    const statusConfig = {
-      paid: { class: "success", icon: FaCheckCircle, text: "Paid" },
-      pending: { class: "warning", icon: FaClock, text: "Pending" },
-      overdue: { class: "danger", icon: FaExclamationCircle, text: "Overdue" }
+  const getPaymentMethodBadge = (method) => {
+    const methods = {
+      online: { class: "info", icon: FaCreditCard, text: "Online" },
+      over_the_counter: {
+        class: "primary",
+        icon: FaStore,
+        text: "Over the Counter",
+      },
     };
-    const config = statusConfig[status] || { class: "secondary", icon: FaCheckCircle, text: status };
+    const config = methods[method] || {
+      class: "secondary",
+      icon: FaCreditCard,
+      text: method,
+    };
     return (
       <span className={`badge bg-${config.class} small`}>
         <config.icon size={10} className="me-1" />
@@ -158,17 +137,6 @@ const MyBills = () => {
       </span>
     );
   };
-
-  const getClientInfo = (bill) => {
-    return {
-      name: user?.name || user?.full_name || "My Account",
-      wws_id: bill?.wws_id || user?.wws_id || "N/A",
-      service:
-        bill?.service_type || bill?.service || user?.service || "Not specified",
-    };
-  };
-
-  const isActionDisabled = () => loading;
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
@@ -179,32 +147,65 @@ const MyBills = () => {
     }
   };
 
+  const formatTime = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      return new Date(dateString).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      return "Invalid Time";
+    }
+  };
+
+  const isActionDisabled = () => {
+    return actionLock || loading;
+  };
+
+  // Calculate statistics
+  const totalPayments = payments.length;
+  const onlinePayments = payments.filter(
+    (p) => p.payment_method === "online"
+  ).length;
+  const counterPayments = payments.filter(
+    (p) => p.payment_method === "over_the_counter"
+  ).length;
+  const totalAmount = payments.reduce(
+    (sum, payment) => sum + payment.amount_paid,
+    0
+  );
+
   // Pagination
-  const totalPages = Math.ceil(filteredBills.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentBills = filteredBills.slice(startIndex, endIndex);
+  const currentPayments = filteredPayments.slice(startIndex, endIndex);
 
   // Skeleton Loader
   const TableRowSkeleton = () => (
     <tr className="align-middle" style={{ height: "70px" }}>
       <td className="text-center">
         <div className="placeholder-wave">
-          <span
-            className="placeholder col-6"
-            style={{ height: "16px", borderRadius: "8px" }}
-          ></span>
+          <span className="placeholder col-4" style={{ height: "20px" }}></span>
         </div>
       </td>
-      <td className="text-center">
-        <div className="d-flex justify-content-center gap-1">
-          {[1, 2].map((item) => (
-            <div
-              key={item}
-              className="placeholder action-placeholder"
-              style={{ width: "32px", height: "32px", borderRadius: "6px" }}
-            ></div>
-          ))}
+      <td>
+        <div className="placeholder-wave mb-1">
+          <span className="placeholder col-6" style={{ height: "16px" }}></span>
+        </div>
+        <div className="placeholder-wave">
+          <span className="placeholder col-5" style={{ height: "14px" }}></span>
+        </div>
+      </td>
+      <td>
+        <div className="placeholder-wave">
+          <span className="placeholder col-7" style={{ height: "16px" }}></span>
+        </div>
+      </td>
+      <td>
+        <div className="placeholder-wave">
+          <span className="placeholder col-6" style={{ height: "16px" }}></span>
         </div>
       </td>
       <td>
@@ -212,22 +213,7 @@ const MyBills = () => {
           <span className="placeholder col-8" style={{ height: "16px" }}></span>
         </div>
         <div className="placeholder-wave">
-          <span className="placeholder col-6" style={{ height: "14px" }}></span>
-        </div>
-      </td>
-      <td>
-        <div className="placeholder-wave">
-          <span className="placeholder col-6" style={{ height: "16px" }}></span>
-        </div>
-      </td>
-      <td>
-        <div className="placeholder-wave">
-          <span className="placeholder col-6" style={{ height: "16px" }}></span>
-        </div>
-      </td>
-      <td>
-        <div className="placeholder-wave">
-          <span className="placeholder col-6" style={{ height: "16px" }}></span>
+          <span className="placeholder col-7" style={{ height: "14px" }}></span>
         </div>
       </td>
       <td>
@@ -238,11 +224,54 @@ const MyBills = () => {
           ></span>
         </div>
       </td>
+      <td>
+        <div className="placeholder-wave">
+          <span
+            className="placeholder col-5"
+            style={{ height: "24px", borderRadius: "12px" }}
+          ></span>
+        </div>
+      </td>
     </tr>
   );
 
+  const StatsCardSkeleton = () => (
+    <div className="card stats-card h-100">
+      <div className="card-body p-3">
+        <div className="d-flex align-items-center">
+          <div className="flex-grow-1">
+            <div className="placeholder-wave mb-2">
+              <span
+                className="placeholder col-9"
+                style={{ height: "14px" }}
+              ></span>
+            </div>
+            <div className="placeholder-wave">
+              <span
+                className="placeholder col-5"
+                style={{ height: "28px" }}
+              ></span>
+            </div>
+          </div>
+          <div className="col-auto">
+            <div className="placeholder-wave">
+              <span
+                className="placeholder rounded-circle"
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "50% !important",
+                }}
+              ></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="container-fluid px-3 py-2 my-bills-container fadeIn">
+    <div className="container-fluid px-3 py-2 payment-history-container fadeIn">
       {/* Page Header */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3">
         <div className="flex-grow-1 mb-2 mb-md-0">
@@ -250,17 +279,24 @@ const MyBills = () => {
             className="h4 mb-1 fw-bold"
             style={{ color: "var(--text-primary)" }}
           >
-            My Bills
+            Payment History
           </h1>
           <p className="mb-0 small" style={{ color: "var(--text-muted)" }}>
-            View and manage your water bills
+            Track your payment transactions and billing history
           </p>
         </div>
         <div className="d-flex align-items-center gap-2 flex-wrap">
+          <div
+            className="badge px-3 py-2 text-white"
+            style={{ backgroundColor: "#336C35" }}
+          >
+            <FaHistory className="me-2" />
+            Total Payments: {loading ? "..." : payments.length}
+          </div>
           <button
             className="btn btn-sm"
-            onClick={fetchBills}
-            disabled={loading}
+            onClick={fetchPayments}
+            disabled={isActionDisabled()}
             style={{
               transition: "all 0.2s ease-in-out",
               border: "2px solid var(--primary-color)",
@@ -288,6 +324,138 @@ const MyBills = () => {
         </div>
       </div>
 
+      {/* Statistics Cards */}
+      <div className="row g-3 mb-4">
+        <div className="col-6 col-md-3">
+          {loading ? (
+            <StatsCardSkeleton />
+          ) : (
+            <div className="card stats-card h-100">
+              <div className="card-body p-3">
+                <div className="d-flex align-items-center">
+                  <div className="flex-grow-1">
+                    <div
+                      className="text-xs fw-semibold text-uppercase mb-1"
+                      style={{ color: "var(--primary-color)" }}
+                    >
+                      Total Payments
+                    </div>
+                    <div
+                      className="h4 mb-0 fw-bold"
+                      style={{ color: "var(--primary-color)" }}
+                    >
+                      {totalPayments}
+                    </div>
+                  </div>
+                  <div className="col-auto">
+                    <FaReceipt
+                      size={24}
+                      style={{ color: "var(--primary-light)", opacity: 0.7 }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="col-6 col-md-3">
+          {loading ? (
+            <StatsCardSkeleton />
+          ) : (
+            <div className="card stats-card h-100">
+              <div className="card-body p-3">
+                <div className="d-flex align-items-center">
+                  <div className="flex-grow-1">
+                    <div
+                      className="text-xs fw-semibold text-uppercase mb-1"
+                      style={{ color: "var(--success-color)" }}
+                    >
+                      Total Amount Paid
+                    </div>
+                    <div
+                      className="h4 mb-0 fw-bold"
+                      style={{ color: "var(--success-color)" }}
+                    >
+                      ₱{totalAmount.toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="col-auto">
+                    <FaCheckCircle
+                      size={24}
+                      style={{ color: "var(--success-light)", opacity: 0.7 }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="col-6 col-md-3">
+          {loading ? (
+            <StatsCardSkeleton />
+          ) : (
+            <div className="card stats-card h-100">
+              <div className="card-body p-3">
+                <div className="d-flex align-items-center">
+                  <div className="flex-grow-1">
+                    <div
+                      className="text-xs fw-semibold text-uppercase mb-1"
+                      style={{ color: "var(--info-color)" }}
+                    >
+                      Online Payments
+                    </div>
+                    <div
+                      className="h4 mb-0 fw-bold"
+                      style={{ color: "var(--info-color)" }}
+                    >
+                      {onlinePayments}
+                    </div>
+                  </div>
+                  <div className="col-auto">
+                    <FaCreditCard
+                      size={24}
+                      style={{ color: "var(--info-light)", opacity: 0.7 }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="col-6 col-md-3">
+          {loading ? (
+            <StatsCardSkeleton />
+          ) : (
+            <div className="card stats-card h-100">
+              <div className="card-body p-3">
+                <div className="d-flex align-items-center">
+                  <div className="flex-grow-1">
+                    <div
+                      className="text-xs fw-semibold text-uppercase mb-1"
+                      style={{ color: "var(--primary-color)" }}
+                    >
+                      Counter Payments
+                    </div>
+                    <div
+                      className="h4 mb-0 fw-bold"
+                      style={{ color: "var(--primary-color)" }}
+                    >
+                      {counterPayments}
+                    </div>
+                  </div>
+                  <div className="col-auto">
+                    <FaStore
+                      size={24}
+                      style={{ color: "var(--primary-light)", opacity: 0.7 }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Search and Filter Controls */}
       <div
         className="card border-0 shadow-sm mb-3"
@@ -300,65 +468,22 @@ const MyBills = () => {
                 className="form-label small fw-semibold mb-1"
                 style={{ color: "var(--text-muted)" }}
               >
-                Search
-              </label>
-              <div className="input-group input-group-sm">
-                <span
-                  className="input-group-text"
-                  style={{
-                    backgroundColor: "var(--background-light)",
-                    borderColor: "var(--input-border)",
-                    color: "var(--text-muted)",
-                  }}
-                >
-                  <i className="fas fa-search"></i>
-                </span>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search by date or WWS ID..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  disabled={loading}
-                  style={{
-                    backgroundColor: "var(--input-bg)",
-                    borderColor: "var(--input-border)",
-                    color: "var(--input-text)",
-                  }}
-                />
-                {searchTerm && (
-                  <button
-                    className="btn btn-sm clear-search-btn"
-                    type="button"
-                    onClick={() => setSearchTerm("")}
-                    disabled={loading}
-                  >
-                    <i className="fas fa-times"></i>
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="col-md-2">
-              <label
-                className="form-label small fw-semibold mb-1"
-                style={{ color: "var(--text-muted)" }}
-              >
-                Status
+                Payment Method
               </label>
               <select
                 className="form-select form-select-sm"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                disabled={loading}
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                disabled={isActionDisabled()}
                 style={{
                   backgroundColor: "var(--input-bg)",
                   borderColor: "var(--input-border)",
                   color: "var(--input-text)",
                 }}
               >
-                <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="paid">Paid</option>
+                <option value="all">All Payments</option>
+                <option value="online">Online Payments</option>
+                <option value="over_the_counter">Over the Counter</option>
               </select>
             </div>
             <div className="col-md-2">
@@ -372,7 +497,7 @@ const MyBills = () => {
                 className="form-select form-select-sm"
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                disabled={loading}
+                disabled={isActionDisabled()}
                 style={{
                   backgroundColor: "var(--input-bg)",
                   borderColor: "var(--input-border)",
@@ -385,13 +510,6 @@ const MyBills = () => {
                 <option value="50">50 per page</option>
               </select>
             </div>
-          </div>
-          <div className="mt-2">
-            <small style={{ color: "var(--text-muted)" }}>
-              Pending bills automatically show an Overdue badge once the due date
-              has passed, so you can spot late bills even without a separate
-              filter.
-            </small>
           </div>
         </div>
       </div>
@@ -410,12 +528,12 @@ const MyBills = () => {
         >
           <div className="d-flex justify-content-between align-items-center">
             <h5 className="card-title mb-0 fw-semibold">
-              <FaFileInvoice className="me-2" />
-              Billing History
+              <FaHistory className="me-2" />
+              Transaction History
               {!loading && (
                 <small className="opacity-75 ms-2">
-                  ({filteredBills.length} found
-                  {searchTerm || filterStatus !== "all" ? " after filtering" : ""})
+                  ({filteredPayments.length} found
+                  {filter !== "all" ? " after filtering" : ""})
                 </small>
               )}
             </h5>
@@ -428,25 +546,28 @@ const MyBills = () => {
               <table className="table table-striped table-hover mb-0">
                 <thead style={{ backgroundColor: "var(--background-light)" }}>
                   <tr>
-                    <th style={{ width: "5%" }} className="text-center small fw-semibold">
+                    <th
+                      style={{ width: "5%" }}
+                      className="text-center small fw-semibold"
+                    >
                       #
                     </th>
-                    <th style={{ width: "15%" }} className="text-center small fw-semibold">
-                      Actions
+                    <th style={{ width: "20%" }} className="small fw-semibold">
+                      Payment Date
                     </th>
-                    <th style={{ width: "25%" }} className="small fw-semibold">
-                      Billing Period
+                    <th style={{ width: "15%" }} className="small fw-semibold">
+                      Bill Period
+                    </th>
+                    <th style={{ width: "15%" }} className="small fw-semibold">
+                      Amount Paid
+                    </th>
+                    <th style={{ width: "20%" }} className="small fw-semibold">
+                      QR Number
+                    </th>
+                    <th style={{ width: "15%" }} className="small fw-semibold">
+                      Payment Method
                     </th>
                     <th style={{ width: "10%" }} className="small fw-semibold">
-                      Consumption
-                    </th>
-                    <th style={{ width: "15%" }} className="small fw-semibold">
-                      Amount
-                    </th>
-                    <th style={{ width: "15%" }} className="small fw-semibold">
-                      Due Date
-                    </th>
-                    <th style={{ width: "15%" }} className="small fw-semibold">
                       Status
                     </th>
                   </tr>
@@ -457,30 +578,43 @@ const MyBills = () => {
                   ))}
                 </tbody>
               </table>
+              <div className="text-center py-4">
+                <div
+                  className="spinner-border me-2"
+                  style={{ color: "var(--primary-color)" }}
+                  role="status"
+                ></div>
+                <span className="small" style={{ color: "var(--text-muted)" }}>
+                  Loading payment history...
+                </span>
+              </div>
             </div>
-          ) : currentBills.length === 0 ? (
+          ) : currentPayments.length === 0 ? (
             <div className="text-center py-5">
               <div className="mb-3">
-                <FaFileInvoice
+                <FaReceipt
                   size={48}
                   style={{ color: "var(--text-muted)", opacity: 0.5 }}
                 />
               </div>
               <h5 className="mb-2" style={{ color: "var(--text-muted)" }}>
-                {bills.length === 0 ? "No Bills Found" : "No Matching Results"}
+                {payments.length === 0
+                  ? "No Payments Found"
+                  : "No Matching Results"}
               </h5>
               <p className="mb-3 small" style={{ color: "var(--text-muted)" }}>
-                {bills.length === 0
-                  ? "You don't have any bills yet."
-                  : "Try adjusting your search criteria."}
+                {payments.length === 0
+                  ? "You haven't made any payments yet."
+                  : `No ${filter.replace("_", " ")} payments found.`}
               </p>
-              {searchTerm && (
+              {filter !== "all" && (
                 <button
                   className="btn btn-sm clear-search-main-btn"
-                  onClick={() => setSearchTerm("")}
+                  onClick={() => setFilter("all")}
+                  disabled={isActionDisabled()}
                 >
                   <i className="fas fa-times me-1"></i>
-                  Clear Search
+                  Clear Filter
                 </button>
               )}
             </div>
@@ -497,177 +631,110 @@ const MyBills = () => {
                         #
                       </th>
                       <th
-                        style={{ width: "15%" }}
-                        className="text-center small fw-semibold"
+                        style={{ width: "20%" }}
+                        className="small fw-semibold"
                       >
-                        Actions
-                      </th>
-                      <th className="small fw-semibold" style={{ width: "25%" }}>
                         <button
                           className="btn btn-link p-0 border-0 text-decoration-none fw-semibold text-start"
-                          onClick={() => handleSort("reading_date")}
+                          onClick={() => handleSort("payment_date")}
                           disabled={isActionDisabled()}
                           style={{ color: "var(--text-primary)" }}
                         >
-                          Billing Period
-                          <i className={`ms-1 ${getSortIcon("reading_date")}`}></i>
+                          Payment Date
+                          <i
+                            className={`ms-1 ${getSortIcon("payment_date")}`}
+                          ></i>
                         </button>
                       </th>
-                      <th className="small fw-semibold" style={{ width: "10%" }}>
-                        Consumption
+                      <th
+                        style={{ width: "15%" }}
+                        className="small fw-semibold"
+                      >
+                        Bill Period
                       </th>
-                      <th className="small fw-semibold" style={{ width: "15%" }}>
-                        Amount
+                      <th
+                        style={{ width: "15%" }}
+                        className="small fw-semibold"
+                      >
+                        Amount Paid
                       </th>
-                      <th className="small fw-semibold" style={{ width: "15%" }}>
-                        <button
-                          className="btn btn-link p-0 border-0 text-decoration-none fw-semibold text-start"
-                          onClick={() => handleSort("due_date")}
-                          disabled={isActionDisabled()}
-                          style={{ color: "var(--text-primary)" }}
-                        >
-                          Due Date
-                          <i className={`ms-1 ${getSortIcon("due_date")}`}></i>
-                        </button>
+                      <th
+                        style={{ width: "20%" }}
+                        className="small fw-semibold"
+                      >
+                        QR Number
                       </th>
-                      <th className="small fw-semibold" style={{ width: "15%" }}>
+                      <th
+                        style={{ width: "15%" }}
+                        className="small fw-semibold"
+                      >
+                        Payment Method
+                      </th>
+                      <th
+                        style={{ width: "10%" }}
+                        className="small fw-semibold"
+                      >
                         Status
                       </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {currentBills.map((bill, index) => (
-                      <tr key={bill.id} className="align-middle">
+                    {currentPayments.map((payment, index) => (
+                      <tr key={payment.id} className="align-middle">
                         <td
                           className="text-center fw-bold"
                           style={{ color: "var(--text-primary)" }}
                         >
                           {startIndex + index + 1}
                         </td>
-                        <td className="text-center">
-                          <div className="d-flex justify-content-center gap-1">
-                            <button
-                              className="btn btn-sm text-white"
-                              onClick={() => handleViewDetails(bill)}
-                              disabled={isActionDisabled()}
-                              title="View Details"
-                              style={{
-                                width: "36px",
-                                height: "36px",
-                                borderRadius: "6px",
-                                transition: "all 0.2s ease-in-out",
-                                backgroundColor: "#17a2b8",
-                                border: "none",
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!e.target.disabled) {
-                                  e.target.style.transform = "translateY(-1px)";
-                                  e.target.style.boxShadow =
-                                    "0 4px 8px rgba(0,0,0,0.2)";
-                                  e.target.style.opacity = "0.9";
-                                }
-                              }}
-                              onMouseLeave={(e) => {
-                                e.target.style.transform = "translateY(0)";
-                                e.target.style.boxShadow = "none";
-                                e.target.style.opacity = "1";
-                              }}
-                            >
-                              <FaEye />
-                            </button>
-                            {bill.status !== "paid" && (
-                              <button
-                                className="btn btn-sm text-white"
-                                onClick={() => handlePayNow(bill)}
-                                disabled={isActionDisabled()}
-                                title="Pay Now"
-                                style={{
-                                  width: "36px",
-                                  height: "36px",
-                                  borderRadius: "6px",
-                                  transition: "all 0.2s ease-in-out",
-                                  backgroundColor: "#28a745",
-                                  border: "none",
-                                }}
-                                onMouseEnter={(e) => {
-                                  if (!e.target.disabled) {
-                                    e.target.style.transform = "translateY(-1px)";
-                                    e.target.style.boxShadow =
-                                      "0 4px 8px rgba(0,0,0,0.2)";
-                                    e.target.style.opacity = "0.9";
-                                  }
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.target.style.transform = "translateY(0)";
-                                  e.target.style.boxShadow = "none";
-                                  e.target.style.opacity = "1";
-                                }}
-                              >
-                                <FaCreditCard />
-                              </button>
-                            )}
-                          </div>
-                        </td>
                         <td>
                           <div style={{ color: "var(--text-primary)" }}>
                             <div className="fw-medium">
-                              {new Date(bill.reading_date).toLocaleDateString(
-                                "en-US",
-                                {
-                                  month: "long",
-                                  year: "numeric",
-                                }
-                              )}
+                              {formatDate(payment.payment_date)}
                             </div>
                             <div
                               className="small"
                               style={{ color: "var(--text-muted)" }}
                             >
-                              Reading: {formatDate(bill.reading_date)}
+                              {formatTime(payment.payment_date)}
                             </div>
                           </div>
                         </td>
                         <td style={{ color: "var(--text-primary)" }}>
-                          <span className="fw-medium">{bill.consumption} m³</span>
-                        </td>
-                        <td>
-                          <div style={{ color: "var(--text-primary)" }}>
-                            <div
-                              className="fw-bold"
-                              style={{ color: "var(--success-color)" }}
-                            >
-                              ₱{bill.total_payable.toFixed(2)}
-                            </div>
-                            {bill.penalty > 0 && (
-                              <div
-                                className="small"
-                                style={{ color: "var(--danger-color)" }}
-                              >
-                                +₱{bill.penalty.toFixed(2)} penalty
-                              </div>
-                            )}
-                          </div>
+                          <span className="fw-medium">
+                            {payment.bill_period}
+                          </span>
                         </td>
                         <td>
                           <div
-                            className={`fw-medium ${
-                              bill.is_overdue ? "text-danger" : ""
-                            }`}
-                            style={{
-                              color: bill.is_overdue
-                                ? "var(--danger-color)"
-                                : "var(--text-primary)",
-                            }}
+                            className="fw-bold"
+                            style={{ color: "var(--success-color)" }}
                           >
-                            {formatDate(bill.due_date)}
-                            {bill.is_overdue && (
-                              <div className="badge bg-danger ms-2 small">
-                                Overdue
+                            ₱{payment.amount_paid.toFixed(2)}
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ color: "var(--text-primary)" }}>
+                            <code style={{ color: "var(--primary-color)" }}>
+                              {payment.qr_number}
+                            </code>
+                            {payment.electronic_qr_number && (
+                              <div
+                                className="small"
+                                style={{ color: "var(--text-muted)" }}
+                              >
+                                Electronic: {payment.electronic_qr_number}
                               </div>
                             )}
                           </div>
                         </td>
-                        <td>{getStatusBadge(bill.status, bill.is_overdue)}</td>
+                        <td>{getPaymentMethodBadge(payment.payment_method)}</td>
+                        <td>
+                          <span className="badge bg-success small">
+                            <FaCheckCircle size={10} className="me-1" />
+                            Completed
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -685,16 +752,17 @@ const MyBills = () => {
                           className="fw-semibold"
                           style={{ color: "var(--text-primary)" }}
                         >
-                          {startIndex + 1}-{Math.min(endIndex, filteredBills.length)}
+                          {startIndex + 1}-
+                          {Math.min(endIndex, filteredPayments.length)}
                         </span>{" "}
                         of{" "}
                         <span
                           className="fw-semibold"
                           style={{ color: "var(--text-primary)" }}
                         >
-                          {filteredBills.length}
+                          {filteredPayments.length}
                         </span>{" "}
-                        bills
+                        payments
                       </small>
                     </div>
 
@@ -704,7 +772,7 @@ const MyBills = () => {
                         onClick={() =>
                           setCurrentPage((prev) => Math.max(prev - 1, 1))
                         }
-                        disabled={currentPage === 1 || loading}
+                        disabled={currentPage === 1 || isActionDisabled()}
                         style={{
                           transition: "all 0.2s ease-in-out",
                           border: "2px solid var(--primary-color)",
@@ -714,8 +782,10 @@ const MyBills = () => {
                         onMouseEnter={(e) => {
                           if (!e.target.disabled) {
                             e.target.style.transform = "translateY(-1px)";
-                            e.target.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
-                            e.target.style.backgroundColor = "var(--primary-color)";
+                            e.target.style.boxShadow =
+                              "0 2px 4px rgba(0,0,0,0.1)";
+                            e.target.style.backgroundColor =
+                              "var(--primary-color)";
                             e.target.style.color = "white";
                           }
                         }}
@@ -775,7 +845,7 @@ const MyBills = () => {
                               onClick={() =>
                                 page !== "..." && setCurrentPage(page)
                               }
-                              disabled={page === "..." || loading}
+                              disabled={page === "..." || isActionDisabled()}
                               style={{
                                 transition: "all 0.2s ease-in-out",
                                 border: `2px solid ${
@@ -838,7 +908,9 @@ const MyBills = () => {
                             Math.min(prev + 1, totalPages)
                           )
                         }
-                        disabled={currentPage === totalPages || loading}
+                        disabled={
+                          currentPage === totalPages || isActionDisabled()
+                        }
                         style={{
                           transition: "all 0.2s ease-in-out",
                           border: "2px solid var(--primary-color)",
@@ -848,8 +920,10 @@ const MyBills = () => {
                         onMouseEnter={(e) => {
                           if (!e.target.disabled) {
                             e.target.style.transform = "translateY(-1px)";
-                            e.target.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
-                            e.target.style.backgroundColor = "var(--primary-color)";
+                            e.target.style.boxShadow =
+                              "0 2px 4px rgba(0,0,0,0.1)";
+                            e.target.style.backgroundColor =
+                              "var(--primary-color)";
                             e.target.style.color = "white";
                           }
                         }}
@@ -872,19 +946,30 @@ const MyBills = () => {
         </div>
       </div>
 
-      {/* Bill Details Modal */}
-      {showDetailsModal && selectedBill && (
-        <BillDetailsModal
-          bill={selectedBill}
-          customer={getClientInfo(selectedBill)}
-          onClose={() => {
-            setShowDetailsModal(false);
-            setSelectedBill(null);
+      {/* Global Action Lock Overlay */}
+      {actionLock && (
+        <div
+          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+          style={{
+            backgroundColor: "rgba(0, 0, 0, 0.1)",
+            zIndex: 9999,
+            pointerEvents: "none",
           }}
-        />
+        >
+          <div className="bg-white rounded p-3 shadow-sm d-flex align-items-center">
+            <div
+              className="spinner-border me-2"
+              style={{ color: "var(--primary-color)" }}
+              role="status"
+            ></div>
+            <span style={{ color: "var(--text-muted)" }}>
+              Processing action...
+            </span>
+          </div>
+        </div>
       )}
     </div>
   );
 };
 
-export default MyBills;
+export default PaymentHistory;

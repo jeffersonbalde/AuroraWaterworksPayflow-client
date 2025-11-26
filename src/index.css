@@ -1512,19 +1512,7 @@ body {
   border-color: var(--border-color);
 }
 
-/* Base button styles */
-/* In index.css - Wrap AccountApprovals styles */
-.account-approvals-container .btn {
-  border: 1px solid var(--input-border) !important;
-  background-color: var(--background-light) !important;
-  color: var(--text-secondary) !important;
-}
 
-.account-approvals-container .btn:hover:not(:disabled) {
-  background-color: var(--primary-light) !important;
-  border-color: var(--primary-color) !important;
-  color: var(--text-primary) !important;
-}
 
 /* Add this wrapper to your action buttons too */
 .account-approvals-container .action-btn {
@@ -1930,4 +1918,126 @@ body {
 .account-approvals-container .table td:nth-child(5) { /* Address */
   white-space: normal;
   min-width: 260px;
+}
+
+/* Add these animations to your main CSS file or create src/styles/animations.css */
+
+/* Modal Backdrop Animation */
+@keyframes modalBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalBackdropFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Modal Content Animation */
+@keyframes modalContentSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modalContentSlideOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.95);
+  }
+}
+
+/* Modal Classes */
+.modal-backdrop-animation {
+  animation: modalBackdropFadeIn 0.3s ease-out forwards;
+}
+
+.modal-backdrop-animation.exit {
+  animation: modalBackdropFadeOut 0.2s ease-in forwards;
+}
+
+.modal-content-animation {
+  animation: modalContentSlideIn 0.3s ease-out forwards;
+}
+
+.modal-content-animation.exit {
+  animation: modalContentSlideOut 0.2s ease-in forwards;
+}
+
+/* Smooth transitions for modal elements */
+.modal-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover effects for buttons */
+.btn-smooth {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-smooth:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-smooth:active {
+  transform: translateY(0);
+}
+
+
+
+
+/* Smooth fade-in animation */
+.smooth-fade-in {
+  opacity: 0;
+  animation: smoothFadeIn 0.5s ease-in-out forwards;
+}
+
+@keyframes smoothFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Alternative: Use transform for subtle scale effect */
+.scale-fade-in {
+  opacity: 0;
+  transform: scale(0.95);
+  animation: scaleFadeIn 0.4s ease-out forwards;
+}
+
+@keyframes scaleFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* If you want to override the existing fadeIn class */
+.fadeIn {
+  opacity: 0;
+  animation: smoothFadeIn 0.5s ease-in-out forwards !important;
 }

@@ -26,10 +26,18 @@ import Settings from "./pages/common/Setting";
 // Unified Dashboard Component
 import UnifiedDashboard from "./components/UnifiedDashboard";
 
-// Management Pages
+// Management Pages/management/customers
 import AccountApprovals from "./pages/admin_staff/AccountApprovals";
-import CustomerManagement from "./pages/admin_staff/CustomerManagement";
-import BillingManagement from "./pages/admin_staff/BillingManagement";
+import CustomerManagement from "./pages/admin_staff/CustomerManagement/CustomerManagement";
+import BillingManagement from "./pages/admin_staff/BillingManagement/BillingManagement";
+import StaffManagement from "./pages/admin/StaffManagement/StaffManagement";
+import MyBills from "./pages/client/MyBills";
+import PaymentHistory from "./pages/client/PaymentHistory/PaymentHistory";
+import WaterUsage from "./pages/client/WaterUsage/WaterUsage";
+import MakePayment from "./pages/client/MakePayment/MakePayment";
+import MeterReading from "./pages/admin_staff/MeterReading/MeterReading";
+import PaymentTracking from "./pages/admin_staff/PaymentTracking/PaymentTracking";
+import CollectionReports from "./pages/admin_staff/CollectionReports/CollectionReports";
 
 function App() {
   return (
@@ -104,15 +112,7 @@ function App() {
           <Route path="/management/meter-reading" element={
             <AdminStaffRoute>
               <Layout>
-                <div className="container-fluid px-4 py-4">
-                  <div className="card border-0 shadow-sm">
-                    <div className="card-body text-center py-5">
-                      <i className="fas fa-tachometer-alt fa-3x text-primary mb-3"></i>
-                      <h2>Meter Reading</h2>
-                      <p className="text-muted">Feature in development</p>
-                    </div>
-                  </div>
-                </div>
+                <MeterReading />
               </Layout>
             </AdminStaffRoute>
           } />
@@ -120,15 +120,7 @@ function App() {
           <Route path="/management/payments" element={
             <AdminStaffRoute>
               <Layout>
-                <div className="container-fluid px-4 py-4">
-                  <div className="card border-0 shadow-sm">
-                    <div className="card-body text-center py-5">
-                      <i className="fas fa-money-bill-wave fa-3x text-primary mb-3"></i>
-                      <h2>Payment Tracking</h2>
-                      <p className="text-muted">Feature in development</p>
-                    </div>
-                  </div>
-                </div>
+                <PaymentTracking />
               </Layout>
             </AdminStaffRoute>
           } />
@@ -136,15 +128,7 @@ function App() {
           <Route path="/management/reports" element={
             <AdminStaffRoute>
               <Layout>
-                <div className="container-fluid px-4 py-4">
-                  <div className="card border-0 shadow-sm">
-                    <div className="card-body text-center py-5">
-                      <i className="fas fa-file-alt fa-3x text-primary mb-3"></i>
-                      <h2>Collection Reports</h2>
-                      <p className="text-muted">Feature in development</p>
-                    </div>
-                  </div>
-                </div>
+                <CollectionReports />
               </Layout>
             </AdminStaffRoute>
           } />
@@ -153,15 +137,7 @@ function App() {
           <Route path="/my-bills" element={
             <ClientRoute>
               <Layout>
-                <div className="container-fluid px-4 py-4">
-                  <div className="card border-0 shadow-sm">
-                    <div className="card-body text-center py-5">
-                      <i className="fas fa-file-invoice-dollar fa-3x text-primary mb-3"></i>
-                      <h2>My Bills</h2>
-                      <p className="text-muted">Feature in development</p>
-                    </div>
-                  </div>
-                </div>
+                <MyBills />
               </Layout>
             </ClientRoute>
           } />
@@ -169,15 +145,7 @@ function App() {
           <Route path="/payment-history" element={
             <ClientRoute>
               <Layout>
-                <div className="container-fluid px-4 py-4">
-                  <div className="card border-0 shadow-sm">
-                    <div className="card-body text-center py-5">
-                      <i className="fas fa-history fa-3x text-primary mb-3"></i>
-                      <h2>Payment History</h2>
-                      <p className="text-muted">Feature in development</p>
-                    </div>
-                  </div>
-                </div>
+                <PaymentHistory />
               </Layout>
             </ClientRoute>
           } />
@@ -185,15 +153,7 @@ function App() {
           <Route path="/water-usage" element={
             <ClientRoute>
               <Layout>
-                <div className="container-fluid px-4 py-4">
-                  <div className="card border-0 shadow-sm">
-                    <div className="card-body text-center py-5">
-                      <i className="fas fa-water fa-3x text-primary mb-3"></i>
-                      <h2>Water Usage</h2>
-                      <p className="text-muted">Feature in development</p>
-                    </div>
-                  </div>
-                </div>
+                <WaterUsage />
               </Layout>
             </ClientRoute>
           } />
@@ -201,15 +161,7 @@ function App() {
           <Route path="/make-payment" element={
             <ClientRoute>
               <Layout>
-                <div className="container-fluid px-4 py-4">
-                  <div className="card border-0 shadow-sm">
-                    <div className="card-body text-center py-5">
-                      <i className="fas fa-credit-card fa-3x text-primary mb-3"></i>
-                      <h2>Make Payment</h2>
-                      <p className="text-muted">Feature in development</p>
-                    </div>
-                  </div>
-                </div>
+                <MakePayment />
               </Layout>
             </ClientRoute>
           } />
@@ -218,7 +170,7 @@ function App() {
           <Route path="/management/staff" element={
             <ProtectedRoute>
               <Layout>
-                <div className="container-fluid px-4 py-4">
+                {/* <div className="container-fluid px-4 py-4">
                   <div className="card border-0 shadow-sm">
                     <div className="card-body text-center py-5">
                       <i className="fas fa-users-cog fa-3x text-primary mb-3"></i>
@@ -226,7 +178,8 @@ function App() {
                       <p className="text-muted">Admin-only feature in development</p>
                     </div>
                   </div>
-                </div>
+                </div> */}
+                <StaffManagement />
               </Layout>
             </ProtectedRoute>
           } />

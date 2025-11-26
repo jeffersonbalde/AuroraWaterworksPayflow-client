@@ -1,4 +1,4 @@
-// src/layout/Sidebar.jsx - UPDATED
+// src/layout/Sidebar.jsx - UPDATED WITH DELINQUENT SUPPORT
 import React from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useLocation, Link } from "react-router-dom";
@@ -12,6 +12,7 @@ const Sidebar = ({ onCloseSidebar }) => {
     isPending,
     isRejected,
     isApproved,
+    isDelinquent, // ADD THIS
     pendingApprovals,
   } = useAuth();
 
@@ -58,7 +59,7 @@ const Sidebar = ({ onCloseSidebar }) => {
           icon: "fas fa-user-check",
           label: "Account Approvals",
           href: "/management/approvals",
-          badge: pendingApprovals, // Add badge here
+          badge: pendingApprovals,
         },
       ],
     },
@@ -104,7 +105,7 @@ const Sidebar = ({ onCloseSidebar }) => {
     },
   ];
 
-  // Client/Customer Menu Items (ONLY for approved clients)
+  // Client/Customer Menu Items (for approved AND delinquent clients)
   const clientMenuItems = [
     {
       heading: "Dashboard",
@@ -123,6 +124,9 @@ const Sidebar = ({ onCloseSidebar }) => {
           icon: "fas fa-file-invoice-dollar",
           label: "My Bills",
           href: "/my-bills",
+          // ADD DELINQUENT WARNING BADGE
+          badge: isDelinquent ? "!" : undefined,
+          badgeColor: isDelinquent ? "warning" : undefined,
         },
         {
           icon: "fas fa-history",
@@ -138,6 +142,9 @@ const Sidebar = ({ onCloseSidebar }) => {
           icon: "fas fa-credit-card",
           label: "Make Payment",
           href: "/make-payment",
+          // HIGHLIGHT PAYMENT OPTION FOR DELINQUENT USERS
+          badge: isDelinquent ? "Urgent" : undefined,
+          badgeColor: isDelinquent ? "danger" : undefined,
         },
       ],
     },
@@ -171,7 +178,7 @@ const Sidebar = ({ onCloseSidebar }) => {
     },
   ];
 
-  // FIXED: Proper menu selection logic
+  // UPDATED: Proper menu selection logic with delinquent support
   let menuItems = [];
 
   if (isPending) {
@@ -180,7 +187,7 @@ const Sidebar = ({ onCloseSidebar }) => {
     menuItems = rejectedMenuItems;
   } else if (isAdmin || isStaff) {
     menuItems = adminStaffMenuItems;
-  } else if (isClient && isApproved) {
+  } else if (isClient && (isApproved || isDelinquent)) { // MODIFIED THIS LINE
     menuItems = clientMenuItems;
   } else {
     // Fallback for any unhandled cases
@@ -203,9 +210,17 @@ const Sidebar = ({ onCloseSidebar }) => {
               <i className={item.icon}></i>
             </div>
             {item.label}
-            {/* Add badge if it exists and count > 0 */}
-            {item.badge !== undefined && item.badge > 0 && (
-              <span className="badge bg-danger ms-2">{item.badge}</span>
+            {/* Enhanced badge system */}
+            {item.badge !== undefined && (
+              <span 
+                className={`badge ms-2 ${
+                  item.badgeColor === 'danger' ? 'bg-danger' :
+                  item.badgeColor === 'warning' ? 'bg-warning text-dark' :
+                  'bg-danger'
+                }`}
+              >
+                {item.badge}
+              </span>
             )}
             {isActive && (
               <span className="position-absolute top-50 end-0 translate-middle-y me-3">
@@ -220,17 +235,18 @@ const Sidebar = ({ onCloseSidebar }) => {
 
   return (
     <nav className="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
+
       <div className="sb-sidenav-menu">
         <div className="nav">
           {menuItems.map(renderMenuSection)}
 
           {/* Common Settings for All Users */}
           {/* Show Profile for ALL users, but Settings only for Admin and Client */}
-          {(isAdmin || isStaff || (isClient && isApproved) || isPending || isRejected) && (
+          {(isAdmin || isStaff || (isClient && (isApproved || isDelinquent)) || isPending || isRejected) && ( // MODIFIED THIS LINE
             <>
               <div className="sb-sidenav-menu-heading">Settings</div>
 
-              {/* Profile - Show for ALL users (Admin, Staff, Client, Pending, Rejected) */}
+              {/* Profile - Show for ALL users (Admin, Staff, Client, Pending, Rejected, Delinquent) */}
               <Link
                 className={`nav-link ${
                   isActiveLink("/profile") ? "active" : ""
@@ -249,8 +265,8 @@ const Sidebar = ({ onCloseSidebar }) => {
                 )}
               </Link>
 
-              {/* Settings - Show only for Admin and Client, NOT Staff */}
-              {(isAdmin || (isClient && isApproved)) && (
+              {/* Settings - Show for Admin and ALL Clients (including delinquent) */}
+              {(isAdmin || (isClient && (isApproved || isDelinquent))) && ( // MODIFIED THIS LINE
                 <Link
                   className={`nav-link ${
                     isActiveLink("/settings") ? "active" : ""
@@ -286,6 +302,8 @@ const Sidebar = ({ onCloseSidebar }) => {
             ? "Pending Approval"
             : isRejected
             ? "Account Rejected"
+            : isDelinquent // ADD THIS
+            ? "Customer (Delinquent)"
             : "Customer"}
         </div>
       </div>

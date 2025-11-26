@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.jsx - FIXED
+// src/contexts/AuthContext.jsx - UPDATED WITH DELINQUENT SUPPORT
 import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
@@ -78,46 +78,56 @@ export function AuthProvider({ children }) {
     }
   }, [token]);
 
-  const login = async (email, password) => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_LARAVEL_API}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
+const login = async (email, password) => {
+  try {
+    const response = await fetch(`${import.meta.env.VITE_LARAVEL_API}/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (response.ok) {
-        localStorage.setItem('token', data.token);
-        setToken(data.token);
-        setUser(data.user);
-        
-        if (data.user?.role === 'admin' || data.user?.role === 'staff') {
-          await fetchPendingApprovalsCount(data.token);
-        }
-        
-        return { 
-          success: true, 
-          redirectTo: data.redirect_to,
-          user: data.user 
-        };
-      } else {
-        return { 
-          success: false, 
-          message: data.message || 'Login failed' 
-        };
+    console.log("🔍 Login API Response:", { // DEBUG
+      status: response.status,
+      data: data
+    });
+
+    if (response.ok) {
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+      setUser(data.user);
+      
+      if (data.user?.role === 'admin' || data.user?.role === 'staff') {
+        await fetchPendingApprovalsCount(data.token);
       }
-    } catch (error) {
+      
+      return { 
+        success: true, 
+        redirectTo: data.redirect_to,
+        user: data.user 
+      };
+    } else {
+      // Return ALL error data from backend
       return { 
         success: false, 
-        message: 'Network error. Please try again.' 
+        error: data.error,
+        message: data.message,
+        deactivation_info: data.deactivation_info,
+        rejection_info: data.rejection_info
       };
     }
-  };
+  } catch (error) {
+    console.error('Login error:', error);
+    return { 
+      success: false, 
+      message: 'Network error. Please try again.' 
+    };
+  }
+};
 
   const register = async (userData) => {
     try {
@@ -187,27 +197,41 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // FIXED: Include token and refreshUserData in the value
+  // UPDATED: Added delinquent status and fixed isApproved logic
   const value = {
     user,
-    token, // ← THIS WAS MISSING
+    token,
     login,
     register,
     logout,
     loading,
     pendingApprovals,
     refreshPendingApprovals,
-    refreshUserData, // ← ADD THIS
+    refreshUserData,
     isAuthenticated: !!user && !!token,
+    
+    // Role helpers
     isAdmin: user?.role === 'admin',
     isStaff: user?.role === 'staff',
     isClient: user?.role === 'client',
+    
+    // Status helpers - UPDATED
     isPending: user?.status === 'pending',
     isRejected: user?.status === 'rejected',
-    isApproved: user?.status === 'active',
+    isActive: user?.status === 'active',
+    isDelinquent: user?.status === 'delinquent', // ADDED THIS
+    
+    // Combined status helpers - UPDATED
+    isApproved: user?.status === 'active' || user?.status === 'delinquent', // DELINQUENT IS CONSIDERED "APPROVED"
+    
+    // Permission helpers
     canManageUsers: user?.role === 'admin',
     canManageBilling: user?.role === 'admin' || user?.role === 'staff',
     canViewReports: user?.role === 'admin' || user?.role === 'staff',
+    
+    // Client access helpers - ADDED THESE
+    hasFullClientAccess: user?.role === 'client' && (user?.status === 'active' || user?.status === 'delinquent'),
+    hasLimitedClientAccess: user?.role === 'client' && (user?.status === 'pending' || user?.status === 'rejected'),
   };
 
   return (

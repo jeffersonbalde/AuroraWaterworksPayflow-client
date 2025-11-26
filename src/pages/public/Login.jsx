@@ -40,51 +40,145 @@ export default function Login() {
     img.onload = () => setBackgroundLoaded(true);
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
 
-    // Validation
-    if (!form.email || !form.password) {
-      showAlert.error("Validation Error", "Please fill in all fields");
-      return;
+
+// src/components/Login.jsx - MODIFIED HANDLESUBMIT FUNCTION
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  // Validation
+  if (!form.email || !form.password) {
+    showAlert.error("Validation Error", "Please fill in all fields");
+    return;
+  }
+
+  setIsSubmitting(true);
+  let loadingAlert = null;
+
+  try {
+    // Show loading alert
+    loadingAlert = showAlert.loading("Signing you in...");
+
+    const result = await login(form.email, form.password);
+
+    // Close loading alert BEFORE showing other alerts
+    if (loadingAlert) {
+      showAlert.close();
+      loadingAlert = null;
     }
 
-    setIsSubmitting(true);
-
-    try {
-      // Show loading alert
-      const loadingAlert = showAlert.loading("Signing you in...");
-
-      const result = await login(form.email, form.password);
-
-      // Close loading alert
-      showAlert.close();
-
-      if (result.success) {
-        // Show success toast
-        showToast.success(`Welcome back, ${result.user.name}!`);
-
-        // Navigate after a short delay
-        setTimeout(() => {
-          navigate(result.redirectTo);
-        }, 1500);
+    if (result.success) {
+      // Show appropriate message based on user status
+      if (result.user.role === 'client') {
+        if (result.user.status === 'rejected') {
+          showAlert.warning(
+            "Account Status: Rejected",
+            `You can still access your account. Reason: ${result.status_info?.rejection_reason || 'Not specified'}`,
+            "Continue to Dashboard"
+          );
+        } else if (result.user.status === 'pending') {
+          showAlert.info(
+            "Account Status: Pending",
+            "Your account is pending approval. You can still access basic features while waiting for approval.",
+            "Continue to Dashboard"
+          );
+        } else {
+          showToast.success(`Welcome back, ${result.user.name}!`);
+        }
       } else {
+        // Normal successful login for staff/admin
+        showToast.success(`Welcome back, ${result.user.name}!`);
+      }
+
+      // Navigate after a short delay
+      setTimeout(() => {
+        navigate(result.redirectTo);
+      }, result.user.role === 'client' && result.user.status !== 'active' ? 2000 : 1500);
+    } else {
+      // Handle backend error responses (only for staff/admin now)
+      if (result.error === 'Account Deactivated') {
+        const deactivationInfo = result.deactivation_info;
+        const deactivationDate = deactivationInfo?.deactivated_at 
+          ? new Date(deactivationInfo.deactivated_at).toLocaleDateString()
+          : 'Unknown date';
+        
+        const messageParts = ["Your account has been deactivated."];
+        
+        if (deactivationInfo?.deactivate_reason) {
+          messageParts.push(`Reason: ${deactivationInfo.deactivate_reason}`);
+        }
+        if (deactivationInfo?.deactivated_by) {
+          messageParts.push(`Deactivated by: ${deactivationInfo.deactivated_by}`);
+        }
+        if (deactivationInfo?.deactivated_at) {
+          messageParts.push(`Deactivated on: ${deactivationDate}`);
+        }
+        
+        showAlert.error(
+          "Account Deactivated",
+          messageParts.join('\n'),
+          "Close"
+        );
+      }
+      else if (result.error === 'Account Pending Approval') {
+        showAlert.info(
+          "Account Pending Approval",
+          "Your account is pending approval. Please contact the administrator for access.",
+          "Close"
+        );
+      }
+      else if (result.error === 'Account Rejected') {
+        // This case now only applies to staff/admin users
+        const rejectionInfo = result.rejection_info;
+        const rejectionDate = rejectionInfo?.rejected_at 
+          ? new Date(rejectionInfo.rejected_at).toLocaleDateString()
+          : 'Unknown date';
+        
+        let rejectionMessage = "Your account registration has been rejected.";
+        
+        if (rejectionInfo?.rejection_reason) {
+          rejectionMessage += ` Reason: ${rejectionInfo.rejection_reason}`;
+        }
+        if (rejectionInfo?.rejected_by) {
+          rejectionMessage += ` Rejected by: ${rejectionInfo.rejected_by}`;
+        }
+        if (rejectionInfo?.rejected_at) {
+          rejectionMessage += ` Rejected on: ${rejectionDate}`;
+        }
+        
+        showAlert.error(
+          "Account Rejected",
+          rejectionMessage,
+          "Close"
+        );
+      }
+      else {
+        // Generic error
         showAlert.error(
           "Login Failed",
           result.message || "Please check your credentials and try again."
         );
       }
-    } catch (error) {
-      showAlert.close();
-      showAlert.error(
-        "Connection Error",
-        "Unable to connect to the server. Please check your internet connection and try again."
-      );
-      console.error("Login error:", error);
-    } finally {
-      setIsSubmitting(false);
     }
-  };
+  } catch (error) {
+    // Ensure loading alert is closed
+    if (loadingAlert) {
+      showAlert.close();
+      loadingAlert = null;
+    }
+    
+    console.error("Login error:", error);
+    
+    // Network or other errors
+    showAlert.error(
+      "Connection Error",
+      "Unable to connect to the server. Please check your internet connection and try again."
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
 
   const handleInput = (e) => {
     const { name, value } = e.target;

@@ -1,4 +1,4 @@
-// src/components/UnifiedDashboard.jsx
+// src/components/UnifiedDashboard.jsx - UPDATED VERSION
 import { useAuth } from '../contexts/AuthContext';
 import Preloader from './Preloader';
 
@@ -8,9 +8,10 @@ import StaffDashboard from '../pages/staff/StaffDashboard';
 import ClientDashboard from '../pages/client/ClientDashboard';
 import PendingClientDashboard from '../pages/client/PendingClientDashboard';
 import RejectedClientDashboard from '../pages/client/RejectedClientDashboard';
+import DelinquentClientDashboard from '../pages/client/DelinquentClientDashboard'; // ADD THIS IMPORT
 
 export default function UnifiedDashboard() {
-  const { user, loading, isAdmin, isStaff, isClient, isPending, isRejected } = useAuth();
+  const { user, loading, isAdmin, isStaff, isClient, isPending, isRejected, isActive } = useAuth();
 
   if (loading) {
     return <Preloader />;
@@ -37,6 +38,11 @@ export default function UnifiedDashboard() {
   }
 
   if (isClient) {
+    // ADD DELINQUENT STATUS CHECK
+    if (user.status === 'delinquent') {
+      return <DelinquentClientDashboard />;
+    }
+    
     if (isRejected) {
       return <RejectedClientDashboard />;
     }

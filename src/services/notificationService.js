@@ -19,20 +19,28 @@ export const showAlert = {
     });
   },
 
-  // Error alert
-  error: (title, text = "", timer = 4000) => {
-    return Swal.fire({
-      title,
-      text,
-      icon: "error",
-      timer,
-      timerProgressBar: true,
-      background: "#fff",
-      color: "#336C35",
-      confirmButtonColor: "#336C35",
-      iconColor: "#dc3545",
-    });
-  },
+// Error alert - FIXED VERSION
+error: (title, text = "", confirmButtonText = "Close", timer = null) => {
+  return Swal.fire({
+    title,
+    text,
+    icon: "error",
+    timer: timer, // Set to null by default, or keep timer if provided
+    timerProgressBar: !!timer,
+    showConfirmButton: true,
+    confirmButtonText,
+    confirmButtonColor: "#336C35",
+    background: "#fff",
+    color: "#336C35",
+    iconColor: "#dc3545",
+    width: "450px",
+    maxWidth: "95vw",
+    padding: "1rem",
+    backdrop: true,
+    allowOutsideClick: false, // Prevent closing by clicking outside
+    allowEscapeKey: false,    // Prevent closing by ESC key
+  });
+},
 
   // Warning alert
   warning: (title, text = "", timer = 3000) => {
@@ -87,9 +95,26 @@ export const showAlert = {
   },
 
   // Loading alert
-  loading: (title = "Loading...") => {
+  loading: (title = "Loading...", text = "") => {
     return Swal.fire({
       title,
+      text,
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      allowEnterKey: false,
+      showConfirmButton: false,
+      background: "#fff",
+      color: "#336C35",
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+  },
+
+  processing: (title = "Processing Action", text = "Please wait while we complete this request...") => {
+    return Swal.fire({
+      title,
+      text,
       allowOutsideClick: false,
       allowEscapeKey: false,
       allowEnterKey: false,
@@ -108,18 +133,24 @@ export const showAlert = {
   },
 
   // Custom HTML alert for detailed content
-  html: (title, htmlContent, confirmButtonText = "Close", width = 600) => {
+  html: (title, htmlContent, confirmButtonText = "Close", cancelButtonText = "Cancel", width = 600, showCancel = false) => {
     return Swal.fire({
       title,
       html: htmlContent,
       icon: "info",
       showConfirmButton: true,
+      showCancelButton: showCancel,
       confirmButtonText,
+      cancelButtonText,
       confirmButtonColor: "#336C35",
+      cancelButtonColor: "#6c757d",
       background: "#fff",
       color: "#336C35",
       iconColor: "#17a2b8",
       width: `${width}px`,
+      showCloseButton: true,
+      allowOutsideClick: false,
+      allowEscapeKey: true,
     });
   },
 };

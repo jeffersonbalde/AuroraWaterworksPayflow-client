@@ -291,41 +291,8 @@ const Topbar = ({ onToggleSidebar }) => {
         <i className="fas fa-bars"></i>
       </button>
 
-      {/* Search Form - Desktop only */}
-      <form className="d-none d-lg-inline-block form-inline ms-auto me-0 me-md-3 my-2 my-md-0">
-        <div className="input-group">
-          <input
-            className="form-control"
-            type="text"
-            placeholder="Search bills or customers..."
-            aria-label="Search"
-            aria-describedby="btnNavbarSearch"
-            style={{ minWidth: "200px" }}
-          />
-          <button
-            className="btn btn-primary"
-            id="btnNavbarSearch"
-            type="button"
-          >
-            <i className="fas fa-search"></i>
-          </button>
-        </div>
-      </form>
-
-      {/* Mobile Search Button - HIDDEN */}
-      <button
-        className="btn btn-link btn-sm d-none me-2" // Added d-none to hide it completely
-        type="button"
-        style={{ color: "var(--background-white)" }}
-        onClick={() => {
-          /* Add mobile search functionality */
-        }}
-      >
-        <i className="fas fa-search"></i>
-      </button>
-
       {/* User Dropdown */}
-      <ul className="navbar-nav ms-auto ms-md-0 me-2 me-lg-3">
+      <ul className="navbar-nav ms-auto me-2 me-lg-3">
         <li className="nav-item dropdown">
           <a
             className="nav-link dropdown-toggle d-flex align-items-center"
@@ -361,7 +328,7 @@ const Topbar = ({ onToggleSidebar }) => {
                 <i className="fas fa-user me-2"></i>Profile
               </button>
             </li>
-            
+
             {/* Conditionally show Settings dropdown item */}
             {shouldShowSettings() && (
               <li>
@@ -373,7 +340,7 @@ const Topbar = ({ onToggleSidebar }) => {
                 </button>
               </li>
             )}
-            
+
             <li>
               <hr className="dropdown-divider" />
             </li>

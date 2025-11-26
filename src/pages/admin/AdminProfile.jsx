@@ -39,7 +39,7 @@ const AdminProfile = () => {
   };
 
   return (
-    <div className="container-fluid px-4 py-3">
+    <div className="container-fluid px-4 py-3 fadeIn">
       {/* Enhanced Header - ClientProfile Style */}
       <div className="text-center mb-4">
         <div className="d-flex justify-content-center align-items-center mb-3">
