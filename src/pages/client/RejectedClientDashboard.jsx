@@ -14,6 +14,11 @@ import {
 } from "react-icons/fa";
 import { showAlert } from "../../services/notificationService";
 
+
+
+
+
+
 export default function RejectedClientDashboard() {
   const { user } = useAuth();
   const [showReasons, setShowReasons] = useState(false);
