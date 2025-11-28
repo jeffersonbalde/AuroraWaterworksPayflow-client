@@ -1,22 +1,49 @@
-// src/pages/client/MakePayment.jsx - UPDATED WITH PORTAL SUCCESS
+// src/pages/client/MakePayment.jsx - GCASH QR CODE PAYMENT INTEGRATION
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { showAlert, showToast } from "../../../services/notificationService";
 import Portal from "../../../components/Portal";
+import qrCodeImage from "../../../assets/images/admin_gcash_qrcode.jpg";
 
 const MakePayment = () => {
   const { user, token } = useAuth();
   const [pendingBills, setPendingBills] = useState([]);
   const [selectedBill, setSelectedBill] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("online");
-  const [paymentGateway, setPaymentGateway] = useState("demo");
+  const [paymentGateway, setPaymentGateway] = useState("gcash");
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showQRCodeModal, setShowQRCodeModal] = useState(false);
   const [paymentResult, setPaymentResult] = useState(null);
+  const [pollingPaymentId, setPollingPaymentId] = useState(null);
+  const [qrCodePayment, setQrCodePayment] = useState(null);
 
   useEffect(() => {
     fetchPendingBills();
+    
+    // Check for URL parameters (success/cancel callbacks)
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const cancelled = urlParams.get('cancelled');
+    const pending = urlParams.get('pending');
+    const paymentId = urlParams.get('payment_id');
+    
+    if (success === 'true' && paymentId) {
+      // Payment was successful, start polling to verify
+      setPollingPaymentId(paymentId);
+      checkPaymentStatus(paymentId);
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (cancelled === 'true') {
+      showAlert.info("Payment Cancelled", "Your payment was cancelled. You can try again anytime.");
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (pending === 'true' && paymentId) {
+      // Payment is still pending, start polling
+      setPollingPaymentId(paymentId);
+      startPaymentPolling(paymentId);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, []);
 
   const fetchPendingBills = async () => {
@@ -52,7 +79,7 @@ const MakePayment = () => {
 
     const result = await showAlert.confirm(
       "Confirm Payment",
-      `Are you sure you want to pay ₱${selectedBill.total_payable.toFixed(2)} for ${new Date(selectedBill.reading_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} bill using ${paymentGateway.toUpperCase()}?`,
+      `Are you sure you want to pay ₱${selectedBill.total_payable.toFixed(2)} for ${new Date(selectedBill.reading_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} bill using GCash?`,
       "Yes, Pay Now",
       "Cancel"
     );
@@ -83,12 +110,42 @@ const MakePayment = () => {
       console.log("Payment Response:", data);
 
       if (response.ok && data.success) {
-        // Store payment result and show success modal
+        // Check if payment requires redirect to PayMongo checkout
+        if (data.requires_redirect && data.checkout_url) {
+          // Store payment ID for polling
+          setPollingPaymentId(data.payment.id);
+          
+          // Show info message
+          showToast.info("Redirecting to GCash payment...");
+          
+          // Redirect to PayMongo checkout
+          window.location.href = data.checkout_url;
+          return;
+        } else if (data.requires_redirect && !data.checkout_url) {
+          // Checkout URL is missing
+          throw new Error('Payment checkout URL was not generated. Please try again or contact support.');
+        }
+
+        // Check if this is a QR code payment
+        if (data.payment_result?.payment_method === 'qr_code' || data.payment_result?.qr_code_url) {
+          setQrCodePayment({
+            payment: data.payment,
+            reference: data.payment_result?.reference || data.payment?.gateway_reference,
+            amount: parseFloat(selectedBill.total_payable) || 0,
+            billPeriod: new Date(selectedBill.reading_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+            qrCodeUrl: data.payment_result?.qr_code_url || qrCodeImage
+          });
+          setPollingPaymentId(data.payment.id);
+          setShowQRCodeModal(true);
+          return;
+        }
+
+        // For immediate success payments
         setPaymentResult({
           payment: data.payment,
           payment_result: data.payment_result,
           reference: data.payment_result?.reference || data.payment?.gateway_reference,
-          amount: selectedBill.total_payable,
+          amount: parseFloat(selectedBill.total_payable) || 0,
           billPeriod: new Date(selectedBill.reading_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
         });
         
@@ -99,33 +156,219 @@ const MakePayment = () => {
         setSelectedBill(null);
 
       } else {
-        throw new Error(data.message || data.error || 'Payment initialization failed');
+        // Show detailed error from backend
+        const errorMessage = data.message || data.error || 'Payment initialization failed';
+        const errorDetails = data.errors ? JSON.stringify(data.errors) : '';
+        console.error("Payment error details:", { data, errorMessage, errorDetails });
+        throw new Error(errorMessage + (errorDetails ? `: ${errorDetails}` : ''));
       }
     } catch (error) {
       console.error("Payment error:", error);
-      showAlert.error("Payment Failed", error.message || "There was an error processing your payment");
+      console.error("Error details:", error.response || error);
+      showAlert.error("Payment Failed", error.message || "There was an error processing your payment. Please check the console for details.");
     } finally {
       setProcessing(false);
     }
   };
+
+  const checkPaymentStatus = async (paymentId) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_LARAVEL_API}/payment/status/${paymentId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.payment_status === 'completed') {
+          // Payment completed, show success
+          const payment = data.payment;
+          setPaymentResult({
+            payment: payment,
+            reference: payment.gateway_reference,
+            amount: parseFloat(payment.amount_paid) || 0,
+            billPeriod: payment.bill ? new Date(payment.bill.reading_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A'
+          });
+          setShowSuccessModal(true);
+          setPollingPaymentId(null);
+          
+          // Refresh bills
+          await fetchPendingBills();
+          setSelectedBill(null);
+          
+          showToast.success("Payment completed successfully!");
+        } else if (data.payment_status === 'failed' || data.payment_status === 'cancelled') {
+          setPollingPaymentId(null);
+          showAlert.error("Payment Failed", "Your payment was not completed. Please try again.");
+        }
+        // If still pending, polling will continue
+      }
+    } catch (error) {
+      console.error("Error checking payment status:", error);
+    }
+  };
+
+  const startPaymentPolling = (paymentId) => {
+    // Poll every 3 seconds for up to 2 minutes
+    let pollCount = 0;
+    const maxPolls = 40; // 40 * 3 seconds = 2 minutes
+    
+    const pollInterval = setInterval(async () => {
+      pollCount++;
+      
+      await checkPaymentStatus(paymentId);
+      
+      // Stop polling if payment is completed or failed, or max polls reached
+      if (pollCount >= maxPolls) {
+        clearInterval(pollInterval);
+        setPollingPaymentId(null);
+        showAlert.warning("Payment Status", "Payment verification is taking longer than expected. Please check your payment history.");
+      }
+    }, 3000);
+
+    // Cleanup on unmount
+    return () => clearInterval(pollInterval);
+  };
+
+  useEffect(() => {
+    if (pollingPaymentId) {
+      const cleanup = startPaymentPolling(pollingPaymentId);
+      return cleanup;
+    }
+  }, [pollingPaymentId]);
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
     setPaymentResult(null);
   };
 
+  const handleQRCodeModalClose = () => {
+    setShowQRCodeModal(false);
+    setQrCodePayment(null);
+    setPollingPaymentId(null);
+  };
+
   const handleGatewayChange = (gateway) => {
     setPaymentGateway(gateway);
-    
-    const gatewayInfo = {
-      demo: "Test mode - No real payment required",
-      paymongo: "Pay via Credit Card, GCash, or GrabPay (Demo Mode)",
-      gcash: "Pay via GCash mobile app (Demo Mode)",
-      paypal: "Pay via PayPal account (Demo Mode)",
-      stripe: "Pay via Credit Card (Demo Mode)"
-    };
-    
-    showToast.info(gatewayInfo[gateway] || `Selected: ${gateway}`);
+  };
+
+  // QR Code Modal Component
+  const QRCodeModal = () => {
+    if (!showQRCodeModal || !qrCodePayment) return null;
+
+    return (
+      <Portal>
+        <div className="modal-backdrop fade show"></div>
+        <div 
+          className="modal fade show d-block" 
+          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          tabIndex="-1"
+        >
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content border-0 shadow-lg">
+              <div
+                className="modal-header border-0"
+                style={{
+                  background: "var(--primary-color)",
+                  color: "white",
+                }}
+              >
+                <h5 className="modal-title fw-semibold">
+                  <i className="fas fa-qrcode me-2"></i>
+                  Pay via GCash QR Code
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={handleQRCodeModalClose}
+                ></button>
+              </div>
+              
+              <div className="modal-body text-center p-4">
+                <div className="mb-4">
+                  <h5 className="mb-3">Scan this QR code with your GCash app</h5>
+                  <div className="d-flex justify-content-center mb-3">
+                    <img 
+                      src={qrCodePayment.qrCodeUrl || qrCodeImage} 
+                      alt="GCash QR Code" 
+                      style={{ 
+                        maxWidth: '300px', 
+                        width: '100%', 
+                        height: 'auto',
+                        border: '2px solid #e0e0e0',
+                        borderRadius: '8px',
+                        backgroundColor: 'white'
+                      }}
+                      onError={(e) => {
+                        e.target.src = qrCodeImage;
+                      }}
+                    />
+                  </div>
+                  <p className="text-muted small mb-2">
+                    Open your GCash app and scan this QR code to complete your payment
+                  </p>
+                </div>
+
+                <div className="card border-0 bg-light mb-3">
+                  <div className="card-body">
+                    <div className="row text-start">
+                      <div className="col-6">
+                        <small className="text-muted">Reference Number</small>
+                        <div className="fw-bold text-primary">
+                          {qrCodePayment.reference || 'N/A'}
+                        </div>
+                      </div>
+                      <div className="col-6">
+                        <small className="text-muted">Amount to Pay</small>
+                        <div className="fw-bold text-success fs-5">
+                          ₱{qrCodePayment.amount.toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="row text-start mt-3">
+                      <div className="col-12">
+                        <small className="text-muted">Bill Period</small>
+                        <div className="fw-medium">{qrCodePayment.billPeriod}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="alert alert-info small mb-0">
+                  <i className="fas fa-info-circle me-2"></i>
+                  <strong>Note:</strong> After scanning and paying, please wait for payment confirmation. 
+                  The system will automatically update once your payment is verified.
+                </div>
+              </div>
+
+              <div className="modal-footer border-0">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-secondary"
+                  onClick={handleQRCodeModalClose}
+                >
+                  Cancel Payment
+                </button>
+                <div className="d-flex align-items-center ms-auto">
+                  {pollingPaymentId && (
+                    <>
+                      <div className="spinner-border spinner-border-sm text-primary me-2" role="status">
+                        <span className="visually-hidden">Checking payment status...</span>
+                      </div>
+                      <small className="text-muted">Checking payment status...</small>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Portal>
+    );
   };
 
   // Success Modal Component
@@ -184,7 +427,7 @@ const MakePayment = () => {
                       <div className="col-6">
                         <small className="text-muted">Amount Paid</small>
                         <div className="fw-bold text-success">
-                          ₱{paymentResult.amount.toFixed(2)}
+                          ₱{(parseFloat(paymentResult.amount) || 0).toFixed(2)}
                         </div>
                       </div>
                     </div>
@@ -313,6 +556,9 @@ const MakePayment = () => {
 
   return (
     <div className="container-fluid px-3 py-2 make-payment-container fadeIn">
+      {/* QR Code Modal */}
+      <QRCodeModal />
+      
       {/* Success Modal */}
       <SuccessModal />
 
@@ -556,7 +802,7 @@ const MakePayment = () => {
                     </div>
                   </div>
 
-                  {/* Payment Gateway Selection */}
+                  {/* Payment Gateway Selection - GCash Only */}
                   <div className="mb-3">
                     <label
                       className="form-label fw-semibold small"
@@ -564,36 +810,25 @@ const MakePayment = () => {
                     >
                       Payment Gateway
                     </label>
-                    <select
-                      className="form-select form-select-sm"
-                      value={paymentGateway}
-                      onChange={(e) => handleGatewayChange(e.target.value)}
+                    <div
+                      className="form-control form-control-sm"
                       style={{
                         backgroundColor: "var(--input-bg)",
                         borderColor: "var(--input-border)",
                         color: "var(--input-text)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
                       }}
                     >
-                      <option value="demo">Demo Mode (Testing)</option>
-                      <option value="paymongo">PayMongo (GCash/Credit Card)</option>
-                      <option value="gcash">GCash Direct</option>
-                      <option value="paypal">PayPal</option>
-                      <option value="stripe">Stripe</option>
-                    </select>
+                      <i className="fas fa-mobile-alt text-primary"></i>
+                      <span className="fw-semibold">GCash</span>
+                    </div>
                     <div
                       className="form-text small"
                       style={{ color: "var(--text-muted)" }}
                     >
-                      {paymentGateway === "demo" &&
-                        "No real payment will be processed"}
-                      {paymentGateway === "paymongo" &&
-                        "Accept GCash, GrabPay, and Credit Cards (Demo Mode)"}
-                      {paymentGateway === "gcash" &&
-                        "Pay using your GCash account (Demo Mode)"}
-                      {paymentGateway === "paypal" &&
-                        "Pay using PayPal account (Demo Mode)"}
-                      {paymentGateway === "stripe" &&
-                        "Pay using Credit/Debit Card (Demo Mode)"}
+                      Pay securely using your GCash account. You will be redirected to complete the payment.
                     </div>
                   </div>
 
@@ -702,28 +937,23 @@ const MakePayment = () => {
                       </>
                     ) : (
                       <>
-                        <i className="fas fa-lock me-2"></i>
-                        {paymentGateway === "demo"
-                          ? "Process Demo Payment"
-                          : `Pay with ${paymentGateway.toUpperCase()}`}
+                        <i className="fas fa-mobile-alt me-2"></i>
+                        Pay with GCash
                       </>
                     )}
                   </button>
 
-                  {paymentGateway !== "demo" && (
-                    <div
-                      className="alert mt-3 small"
-                      style={{
-                        backgroundColor: "var(--warning-light)",
-                        borderColor: "var(--warning-color)",
-                        color: "var(--text-primary)",
-                      }}
-                    >
-                      <i className="fas fa-shield-alt me-2"></i>
-                      You will be redirected to a secure payment gateway. (Demo
-                      Mode)
-                    </div>
-                  )}
+                  <div
+                    className="alert mt-3 small"
+                    style={{
+                      backgroundColor: "var(--info-light)",
+                      borderColor: "var(--info-color)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    <i className="fas fa-shield-alt me-2"></i>
+                    You will be redirected to PayMongo's secure payment page to complete your GCash payment.
+                  </div>
                 </>
               )}
             </div>

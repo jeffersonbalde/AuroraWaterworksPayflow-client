@@ -249,6 +249,9 @@ const PaymentTracking = () => {
             "Content-Type": "application/json",
             Accept: "application/json",
           },
+          body: JSON.stringify({
+            payment_status: 'completed'
+          }),
         }
       );
 
@@ -336,7 +339,7 @@ const PaymentTracking = () => {
 
   // Calculate statistics
   const totalAmount = payments.reduce(
-    (sum, payment) => sum + payment.amount_paid,
+    (sum, payment) => sum + (parseFloat(payment.amount_paid) || 0),
     0
   );
   const onlinePayments = payments.filter(
@@ -522,7 +525,7 @@ const PaymentTracking = () => {
                       className="h4 mb-0 fw-bold"
                       style={{ color: "var(--primary-color)" }}
                     >
-                      ₱{totalAmount.toFixed(2)}
+                      ₱{(parseFloat(totalAmount) || 0).toFixed(2)}
                     </div>
                   </div>
                   <div className="col-auto">
@@ -1112,7 +1115,7 @@ const PaymentTracking = () => {
                           </td>
                           <td>
                             <div className="fw-bold text-success">
-                              ₱{payment.amount_paid.toFixed(2)}
+                              ₱{(parseFloat(payment.amount_paid) || 0).toFixed(2)}
                             </div>
                           </td>
                           <td>
