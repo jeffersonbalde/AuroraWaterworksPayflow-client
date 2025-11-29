@@ -585,10 +585,9 @@ const BillFormModal = ({ bill, customers, onClose, onSave, token }) => {
                             }`}
                             name="amount"
                             value={formData.amount}
-                            onChange={handleChange}
-                            disabled={loading}
+                            disabled
                             placeholder="0.00"
-                            style={{ backgroundColor: "#ffffff" }}
+                            style={{ backgroundColor: "#f8f9fa" }}
                           />
                           {errors.amount && (
                             <div className="invalid-feedback">{errors.amount}</div>
