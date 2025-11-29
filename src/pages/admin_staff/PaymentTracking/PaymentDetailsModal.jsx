@@ -254,12 +254,16 @@ const PaymentDetailsModal = ({ payment, customer, onClose }) => {
                           <p className="mb-0 fw-semibold text-dark">{payment.electronic_qr_number}</p>
                         </div>
                       )}
-                      {payment.gateway_reference && (
-                        <div className="mb-3">
-                          <label className="form-label small fw-semibold text-muted mb-1">Gateway Reference</label>
-                          <p className="mb-0 fw-semibold text-dark">{payment.gateway_reference}</p>
-                        </div>
-                      )}
+                      <div className="mb-3">
+                        <label className="form-label small fw-semibold text-muted mb-1">
+                          GCash Transaction Reference
+                        </label>
+                        {payment.gateway_reference ? (
+                          <p className="mb-0 fw-bold text-primary fs-6">{payment.gateway_reference}</p>
+                        ) : (
+                          <p className="mb-0 text-muted fst-italic">Not provided by customer yet</p>
+                        )}
+                      </div>
                       {payment.gateway_transaction_id && (
                         <div className="mb-3">
                           <label className="form-label small fw-semibold text-muted mb-1">Transaction ID</label>

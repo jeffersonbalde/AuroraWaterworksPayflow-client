@@ -1105,10 +1105,14 @@ const PaymentTracking = () => {
                                   {payment.electronic_qr_number}
                                 </div>
                               )}
-                              {payment.gateway_reference && (
+                              {payment.gateway_reference ? (
                                 <div className="small">
-                                  <strong>Ref:</strong>{" "}
-                                  {payment.gateway_reference}
+                                  <strong>GCash Ref:</strong>{" "}
+                                  <span className="text-primary fw-bold">{payment.gateway_reference}</span>
+                                </div>
+                              ) : (
+                                <div className="small text-muted">
+                                  <strong>GCash Ref:</strong> Not provided yet
                                 </div>
                               )}
                             </div>

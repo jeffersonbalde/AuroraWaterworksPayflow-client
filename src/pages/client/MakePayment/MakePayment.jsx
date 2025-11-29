@@ -1,8 +1,9 @@
 // src/pages/client/MakePayment.jsx - GCASH QR CODE PAYMENT INTEGRATION
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { showAlert, showToast } from "../../../services/notificationService";
 import Portal from "../../../components/Portal";
+import QRCodeModal from "./QRCodeModal";
 import qrCodeImage from "../../../assets/images/admin_gcash_qrcode.jpg";
 
 const MakePayment = () => {
@@ -18,27 +19,38 @@ const MakePayment = () => {
   const [paymentResult, setPaymentResult] = useState(null);
   const [pollingPaymentId, setPollingPaymentId] = useState(null);
   const [qrCodePayment, setQrCodePayment] = useState(null);
+  const [customerReference, setCustomerReference] = useState("");
+  const [submittingReference, setSubmittingReference] = useState(false);
+  const pollingIntervalRef = React.useRef(null);
+  const isTypingRef = React.useRef(false);
+  const shouldPollRef = React.useRef(true);
+  const qrCodeInputRef = React.useRef(null);
+  const qrCodeLocalValueRef = React.useRef("");
+  const modalVisibleRef = React.useRef(false);
 
   useEffect(() => {
     fetchPendingBills();
-    
+
     // Check for URL parameters (success/cancel callbacks)
     const urlParams = new URLSearchParams(window.location.search);
-    const success = urlParams.get('success');
-    const cancelled = urlParams.get('cancelled');
-    const pending = urlParams.get('pending');
-    const paymentId = urlParams.get('payment_id');
-    
-    if (success === 'true' && paymentId) {
+    const success = urlParams.get("success");
+    const cancelled = urlParams.get("cancelled");
+    const pending = urlParams.get("pending");
+    const paymentId = urlParams.get("payment_id");
+
+    if (success === "true" && paymentId) {
       // Payment was successful, start polling to verify
       setPollingPaymentId(paymentId);
       checkPaymentStatus(paymentId);
       // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (cancelled === 'true') {
-      showAlert.info("Payment Cancelled", "Your payment was cancelled. You can try again anytime.");
+    } else if (cancelled === "true") {
+      showAlert.info(
+        "Payment Cancelled",
+        "Your payment was cancelled. You can try again anytime."
+      );
       window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (pending === 'true' && paymentId) {
+    } else if (pending === "true" && paymentId) {
       // Payment is still pending, start polling
       setPollingPaymentId(paymentId);
       startPaymentPolling(paymentId);
@@ -49,18 +61,21 @@ const MakePayment = () => {
   const fetchPendingBills = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_LARAVEL_API}/client/pending-bills`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_LARAVEL_API}/client/pending-bills`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
         setPendingBills(data.pending_bills || []);
       } else {
-        throw new Error('Failed to fetch pending bills');
+        throw new Error("Failed to fetch pending bills");
       }
     } catch (error) {
       console.error("Error fetching pending bills:", error);
@@ -79,7 +94,12 @@ const MakePayment = () => {
 
     const result = await showAlert.confirm(
       "Confirm Payment",
-      `Are you sure you want to pay ₱${selectedBill.total_payable.toFixed(2)} for ${new Date(selectedBill.reading_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} bill using GCash?`,
+      `Are you sure you want to pay ₱${selectedBill.total_payable.toFixed(
+        2
+      )} for ${new Date(selectedBill.reading_date).toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      })} bill using GCash?`,
       "Yes, Pay Now",
       "Cancel"
     );
@@ -90,20 +110,23 @@ const MakePayment = () => {
 
     setProcessing(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_LARAVEL_API}/client/make-payment`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          bill_id: selectedBill.id,
-          payment_method: paymentMethod,
-          payment_gateway: paymentGateway,
-          amount: selectedBill.total_payable,
-        }),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_LARAVEL_API}/client/make-payment`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            bill_id: selectedBill.id,
+            payment_method: paymentMethod,
+            payment_gateway: paymentGateway,
+            amount: selectedBill.total_payable,
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -114,28 +137,39 @@ const MakePayment = () => {
         if (data.requires_redirect && data.checkout_url) {
           // Store payment ID for polling
           setPollingPaymentId(data.payment.id);
-          
+
           // Show info message
           showToast.info("Redirecting to GCash payment...");
-          
+
           // Redirect to PayMongo checkout
           window.location.href = data.checkout_url;
           return;
         } else if (data.requires_redirect && !data.checkout_url) {
           // Checkout URL is missing
-          throw new Error('Payment checkout URL was not generated. Please try again or contact support.');
+          throw new Error(
+            "Payment checkout URL was not generated. Please try again or contact support."
+          );
         }
 
         // Check if this is a QR code payment
-        if (data.payment_result?.payment_method === 'qr_code' || data.payment_result?.qr_code_url) {
+        if (
+          data.payment_result?.payment_method === "qr_code" ||
+          data.payment_result?.qr_code_url
+        ) {
           setQrCodePayment({
             payment: data.payment,
-            reference: data.payment_result?.reference || data.payment?.gateway_reference,
+            reference:
+              data.payment_result?.reference || data.payment?.gateway_reference,
             amount: parseFloat(selectedBill.total_payable) || 0,
-            billPeriod: new Date(selectedBill.reading_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-            qrCodeUrl: data.payment_result?.qr_code_url || qrCodeImage
+            billPeriod: new Date(selectedBill.reading_date).toLocaleDateString(
+              "en-US",
+              { month: "long", year: "numeric" }
+            ),
+            qrCodeUrl: data.payment_result?.qr_code_url || qrCodeImage,
           });
-          setPollingPaymentId(data.payment.id);
+          // Disable polling initially - will be enabled after reference is submitted
+          shouldPollRef.current = false;
+          setPollingPaymentId(null); // Don't start polling yet
           setShowQRCodeModal(true);
           return;
         }
@@ -144,94 +178,157 @@ const MakePayment = () => {
         setPaymentResult({
           payment: data.payment,
           payment_result: data.payment_result,
-          reference: data.payment_result?.reference || data.payment?.gateway_reference,
+          reference:
+            data.payment_result?.reference || data.payment?.gateway_reference,
           amount: parseFloat(selectedBill.total_payable) || 0,
-          billPeriod: new Date(selectedBill.reading_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+          billPeriod: new Date(selectedBill.reading_date).toLocaleDateString(
+            "en-US",
+            { month: "long", year: "numeric" }
+          ),
         });
-        
+
         setShowSuccessModal(true);
-        
+
         // Refresh bills and reset selection
         await fetchPendingBills();
         setSelectedBill(null);
-
       } else {
         // Show detailed error from backend
-        const errorMessage = data.message || data.error || 'Payment initialization failed';
-        const errorDetails = data.errors ? JSON.stringify(data.errors) : '';
-        console.error("Payment error details:", { data, errorMessage, errorDetails });
-        throw new Error(errorMessage + (errorDetails ? `: ${errorDetails}` : ''));
+        const errorMessage =
+          data.message || data.error || "Payment initialization failed";
+        const errorDetails = data.errors ? JSON.stringify(data.errors) : "";
+        console.error("Payment error details:", {
+          data,
+          errorMessage,
+          errorDetails,
+        });
+        throw new Error(
+          errorMessage + (errorDetails ? `: ${errorDetails}` : "")
+        );
       }
     } catch (error) {
       console.error("Payment error:", error);
       console.error("Error details:", error.response || error);
-      showAlert.error("Payment Failed", error.message || "There was an error processing your payment. Please check the console for details.");
+      showAlert.error(
+        "Payment Failed",
+        error.message ||
+          "There was an error processing your payment. Please check the console for details."
+      );
     } finally {
       setProcessing(false);
     }
   };
 
-  const checkPaymentStatus = async (paymentId) => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_LARAVEL_API}/payment/status/${paymentId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      });
+  const checkPaymentStatus = useCallback(
+    async (paymentId) => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_LARAVEL_API}/payment/status/${paymentId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+          }
+        );
 
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.payment_status === 'completed') {
-          // Payment completed, show success
-          const payment = data.payment;
-          setPaymentResult({
-            payment: payment,
-            reference: payment.gateway_reference,
-            amount: parseFloat(payment.amount_paid) || 0,
-            billPeriod: payment.bill ? new Date(payment.bill.reading_date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A'
-          });
-          setShowSuccessModal(true);
-          setPollingPaymentId(null);
-          
-          // Refresh bills
-          await fetchPendingBills();
-          setSelectedBill(null);
-          
-          showToast.success("Payment completed successfully!");
-        } else if (data.payment_status === 'failed' || data.payment_status === 'cancelled') {
-          setPollingPaymentId(null);
-          showAlert.error("Payment Failed", "Your payment was not completed. Please try again.");
+        if (response.ok) {
+          const data = await response.json();
+
+          // Only update state if status actually changed to prevent flickering
+          if (data.payment_status === "completed") {
+            // Payment completed, show success
+            const payment = data.payment;
+            setPaymentResult({
+              payment: payment,
+              reference: payment.gateway_reference,
+              amount: parseFloat(payment.amount_paid) || 0,
+              billPeriod: payment.bill
+                ? new Date(payment.bill.reading_date).toLocaleDateString(
+                    "en-US",
+                    { month: "long", year: "numeric" }
+                  )
+                : "N/A",
+            });
+            setShowSuccessModal(true);
+            setShowQRCodeModal(false);
+            setPollingPaymentId(null);
+            setQrCodePayment(null);
+            setCustomerReference("");
+
+            // Refresh bills
+            await fetchPendingBills();
+            setSelectedBill(null);
+
+            showToast.success("Payment completed successfully!");
+          } else if (
+            data.payment_status === "failed" ||
+            data.payment_status === "cancelled"
+          ) {
+            setPollingPaymentId(null);
+            setShowQRCodeModal(false);
+            setQrCodePayment(null);
+            setCustomerReference("");
+            showAlert.error(
+              "Payment Failed",
+              "Your payment was not completed. Please try again."
+            );
+          }
+          // If still pending, don't update any state - just continue polling silently
         }
-        // If still pending, polling will continue
+      } catch (error) {
+        console.error("Error checking payment status:", error);
+        // Don't update state on error to prevent flickering
       }
-    } catch (error) {
-      console.error("Error checking payment status:", error);
-    }
-  };
+    },
+    [token]
+  );
 
-  const startPaymentPolling = (paymentId) => {
-    // Poll every 3 seconds for up to 2 minutes
-    let pollCount = 0;
-    const maxPolls = 40; // 40 * 3 seconds = 2 minutes
-    
-    const pollInterval = setInterval(async () => {
-      pollCount++;
-      
-      await checkPaymentStatus(paymentId);
-      
-      // Stop polling if payment is completed or failed, or max polls reached
-      if (pollCount >= maxPolls) {
-        clearInterval(pollInterval);
-        setPollingPaymentId(null);
-        showAlert.warning("Payment Status", "Payment verification is taking longer than expected. Please check your payment history.");
+  const startPaymentPolling = useCallback(
+    (paymentId) => {
+      // Clear any existing polling
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
       }
-    }, 3000);
 
-    // Cleanup on unmount
-    return () => clearInterval(pollInterval);
-  };
+      // Poll every 5 seconds for up to 2 minutes
+      let pollCount = 0;
+      const maxPolls = 24; // 24 * 5 seconds = 2 minutes
+
+      pollingIntervalRef.current = setInterval(async () => {
+        // Skip polling if user is actively typing OR if polling is disabled OR if modal is still open
+        if (isTypingRef.current || !shouldPollRef.current || showQRCodeModal) {
+          return;
+        }
+
+        pollCount++;
+
+        await checkPaymentStatus(paymentId);
+
+        // Stop polling if payment is completed or failed, or max polls reached
+        if (pollCount >= maxPolls) {
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+          setPollingPaymentId(null);
+          showAlert.warning(
+            "Payment Status",
+            "Payment verification is taking longer than expected. Please check your payment history."
+          );
+        }
+      }, 5000); // Increased to 5 seconds to reduce frequency
+
+      // Cleanup on unmount
+      return () => {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+      };
+    },
+    [checkPaymentStatus]
+  );
 
   useEffect(() => {
     if (pollingPaymentId) {
@@ -246,129 +343,114 @@ const MakePayment = () => {
   };
 
   const handleQRCodeModalClose = () => {
+    // Stop polling
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    isTypingRef.current = false;
+    if (window.typingTimeout) {
+      clearTimeout(window.typingTimeout);
+    }
+
     setShowQRCodeModal(false);
     setQrCodePayment(null);
     setPollingPaymentId(null);
+    setCustomerReference("");
+  };
+
+  // Stable handler for reference input to prevent flickering
+  const handleReferenceChange = useCallback((e) => {
+    const value = e.target.value;
+    setCustomerReference(value);
+
+    // Mark that user is typing
+    isTypingRef.current = true;
+
+    // Clear typing flag after 1 second of no typing
+    if (window.typingTimeout) {
+      clearTimeout(window.typingTimeout);
+    }
+    window.typingTimeout = setTimeout(() => {
+      isTypingRef.current = false;
+    }, 1000);
+  }, []);
+
+  const handleSubmitReference = async () => {
+    // Get value from ref if input exists, otherwise use state
+    const inputValue =
+      qrCodeInputRef?.current?.value?.trim() ||
+      qrCodeLocalValueRef.current?.trim() ||
+      customerReference.trim();
+
+    if (!inputValue || !qrCodePayment?.payment?.id) {
+      showAlert.error("Error", "Please enter a valid reference number");
+      return;
+    }
+
+    // Update state with the value
+    setCustomerReference(inputValue);
+    qrCodeLocalValueRef.current = inputValue;
+    isTypingRef.current = false;
+
+    setSubmittingReference(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_LARAVEL_API}/client/payments/${
+          qrCodePayment.payment.id
+        }/update-reference`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            gateway_reference: inputValue,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        showToast.success("Reference number submitted successfully!");
+
+        // Close the modal immediately after successful submission
+        setShowQRCodeModal(false);
+        setQrCodePayment(null);
+        setCustomerReference("");
+        qrCodeLocalValueRef.current = "";
+
+        // Enable polling and start it after reference is submitted
+        // Use a small delay to ensure modal is fully closed before starting polling
+        shouldPollRef.current = true;
+        const paymentId = qrCodePayment.payment.id; // Store payment ID before clearing state
+        setTimeout(() => {
+          setPollingPaymentId(paymentId);
+        }, 100);
+
+        // Show info message
+        showToast.info("Reference saved. Waiting for admin verification...");
+      } else {
+        throw new Error(
+          data.message || data.error || "Failed to submit reference number"
+        );
+      }
+    } catch (error) {
+      console.error("Error submitting reference:", error);
+      showAlert.error(
+        "Submission Failed",
+        error.message || "Failed to submit reference number. Please try again."
+      );
+    } finally {
+      setSubmittingReference(false);
+    }
   };
 
   const handleGatewayChange = (gateway) => {
     setPaymentGateway(gateway);
-  };
-
-  // QR Code Modal Component
-  const QRCodeModal = () => {
-    if (!showQRCodeModal || !qrCodePayment) return null;
-
-    return (
-      <Portal>
-        <div className="modal-backdrop fade show"></div>
-        <div 
-          className="modal fade show d-block" 
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
-          tabIndex="-1"
-        >
-          <div className="modal-dialog modal-dialog-centered modal-lg">
-            <div className="modal-content border-0 shadow-lg">
-              <div
-                className="modal-header border-0"
-                style={{
-                  background: "var(--primary-color)",
-                  color: "white",
-                }}
-              >
-                <h5 className="modal-title fw-semibold">
-                  <i className="fas fa-qrcode me-2"></i>
-                  Pay via GCash QR Code
-                </h5>
-                <button
-                  type="button"
-                  className="btn-close btn-close-white"
-                  onClick={handleQRCodeModalClose}
-                ></button>
-              </div>
-              
-              <div className="modal-body text-center p-4">
-                <div className="mb-4">
-                  <h5 className="mb-3">Scan this QR code with your GCash app</h5>
-                  <div className="d-flex justify-content-center mb-3">
-                    <img 
-                      src={qrCodePayment.qrCodeUrl || qrCodeImage} 
-                      alt="GCash QR Code" 
-                      style={{ 
-                        maxWidth: '300px', 
-                        width: '100%', 
-                        height: 'auto',
-                        border: '2px solid #e0e0e0',
-                        borderRadius: '8px',
-                        backgroundColor: 'white'
-                      }}
-                      onError={(e) => {
-                        e.target.src = qrCodeImage;
-                      }}
-                    />
-                  </div>
-                  <p className="text-muted small mb-2">
-                    Open your GCash app and scan this QR code to complete your payment
-                  </p>
-                </div>
-
-                <div className="card border-0 bg-light mb-3">
-                  <div className="card-body">
-                    <div className="row text-start">
-                      <div className="col-6">
-                        <small className="text-muted">Reference Number</small>
-                        <div className="fw-bold text-primary">
-                          {qrCodePayment.reference || 'N/A'}
-                        </div>
-                      </div>
-                      <div className="col-6">
-                        <small className="text-muted">Amount to Pay</small>
-                        <div className="fw-bold text-success fs-5">
-                          ₱{qrCodePayment.amount.toFixed(2)}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="row text-start mt-3">
-                      <div className="col-12">
-                        <small className="text-muted">Bill Period</small>
-                        <div className="fw-medium">{qrCodePayment.billPeriod}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="alert alert-info small mb-0">
-                  <i className="fas fa-info-circle me-2"></i>
-                  <strong>Note:</strong> After scanning and paying, please wait for payment confirmation. 
-                  The system will automatically update once your payment is verified.
-                </div>
-              </div>
-
-              <div className="modal-footer border-0">
-                <button
-                  type="button"
-                  className="btn btn-sm btn-secondary"
-                  onClick={handleQRCodeModalClose}
-                >
-                  Cancel Payment
-                </button>
-                <div className="d-flex align-items-center ms-auto">
-                  {pollingPaymentId && (
-                    <>
-                      <div className="spinner-border spinner-border-sm text-primary me-2" role="status">
-                        <span className="visually-hidden">Checking payment status...</span>
-                      </div>
-                      <small className="text-muted">Checking payment status...</small>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Portal>
-    );
   };
 
   // Success Modal Component
@@ -378,9 +460,9 @@ const MakePayment = () => {
     return (
       <Portal>
         <div className="modal-backdrop fade show"></div>
-        <div 
-          className="modal fade show d-block" 
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+        <div
+          className="modal fade show d-block"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
           tabIndex="-1"
         >
           <div className="modal-dialog modal-dialog-centered">
@@ -402,16 +484,15 @@ const MakePayment = () => {
                   onClick={handleSuccessModalClose}
                 ></button>
               </div>
-              
+
               <div className="modal-body text-center p-4">
                 <div className="mb-4">
                   <i className="fas fa-check-circle fa-4x text-success mb-3"></i>
                   <h4 className="text-success mb-2">Payment Completed</h4>
                   <p className="text-muted">
-                    {paymentGateway === 'demo' 
+                    {paymentGateway === "demo"
                       ? "This was a test payment. No real money was processed."
-                      : "Your payment has been processed successfully."
-                    }
+                      : "Your payment has been processed successfully."}
                   </p>
                 </div>
 
@@ -421,7 +502,7 @@ const MakePayment = () => {
                       <div className="col-6">
                         <small className="text-muted">Reference Number</small>
                         <div className="fw-bold text-primary">
-                          {paymentResult.reference || 'N/A'}
+                          {paymentResult.reference || "N/A"}
                         </div>
                       </div>
                       <div className="col-6">
@@ -431,17 +512,20 @@ const MakePayment = () => {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="row text-start mt-3">
                       <div className="col-6">
                         <small className="text-muted">Bill Period</small>
-                        <div className="fw-medium">{paymentResult.billPeriod}</div>
+                        <div className="fw-medium">
+                          {paymentResult.billPeriod}
+                        </div>
                       </div>
                       <div className="col-6">
                         <small className="text-muted">Payment Gateway</small>
                         <div>
                           <span className="badge bg-primary text-uppercase">
-                            {paymentResult.payment_result?.gateway || paymentGateway}
+                            {paymentResult.payment_result?.gateway ||
+                              paymentGateway}
                           </span>
                         </div>
                       </div>
@@ -488,7 +572,7 @@ const MakePayment = () => {
                   className="btn btn-sm btn-success text-white"
                   onClick={() => {
                     handleSuccessModalClose();
-                    window.location.href = '/payment-history';
+                    window.location.href = "/payment-history";
                   }}
                   style={{
                     transition: "all 0.2s ease-in-out",
@@ -556,9 +640,21 @@ const MakePayment = () => {
 
   return (
     <div className="container-fluid px-3 py-2 make-payment-container fadeIn">
-      {/* QR Code Modal */}
-      <QRCodeModal />
-      
+      {/* QR Code Modal - Only render when both conditions are true */}
+      {showQRCodeModal && qrCodePayment && (
+        <QRCodeModal
+          isOpen={showQRCodeModal}
+          qrCodePayment={qrCodePayment}
+          submittingReference={submittingReference}
+          pollingPaymentId={pollingPaymentId}
+          onClose={handleQRCodeModalClose}
+          onSubmitReference={handleSubmitReference}
+          inputRef={qrCodeInputRef}
+          localValueRef={qrCodeLocalValueRef}
+          isTypingRef={isTypingRef}
+        />
+      )}
+
       {/* Success Modal */}
       <SuccessModal />
 
@@ -614,7 +710,9 @@ const MakePayment = () => {
               {loading ? (
                 <div className="table-responsive">
                   <table className="table table-striped table-hover mb-0">
-                    <thead style={{ backgroundColor: "var(--background-light)" }}>
+                    <thead
+                      style={{ backgroundColor: "var(--background-light)" }}
+                    >
                       <tr>
                         <th className="small fw-semibold"></th>
                         <th className="small fw-semibold">Billing Period</th>
@@ -641,14 +739,19 @@ const MakePayment = () => {
                   <h5 className="mb-2" style={{ color: "var(--text-muted)" }}>
                     No Pending Bills
                   </h5>
-                  <p className="mb-3 small" style={{ color: "var(--text-muted)" }}>
+                  <p
+                    className="mb-3 small"
+                    style={{ color: "var(--text-muted)" }}
+                  >
                     All your bills are paid up to date!
                   </p>
                 </div>
               ) : (
                 <div className="table-responsive">
                   <table className="table table-striped table-hover mb-0">
-                    <thead style={{ backgroundColor: "var(--background-light)" }}>
+                    <thead
+                      style={{ backgroundColor: "var(--background-light)" }}
+                    >
                       <tr>
                         <th className="small fw-semibold"></th>
                         <th className="small fw-semibold">Billing Period</th>
@@ -795,7 +898,8 @@ const MakePayment = () => {
                         <div className="mt-1">
                           <small style={{ color: "var(--danger-color)" }}>
                             <i className="fas fa-exclamation-triangle me-1"></i>
-                            This bill is {selectedBill.days_overdue} days overdue
+                            This bill is {selectedBill.days_overdue} days
+                            overdue
                           </small>
                         </div>
                       )}
@@ -828,51 +932,8 @@ const MakePayment = () => {
                       className="form-text small"
                       style={{ color: "var(--text-muted)" }}
                     >
-                      Pay securely using your GCash account. You will be redirected to complete the payment.
-                    </div>
-                  </div>
-
-                  {/* Payment Method */}
-                  <div className="mb-4">
-                    <label
-                      className="form-label fw-semibold small"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      Payment Method
-                    </label>
-                    <div className="form-check mb-2">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="paymentMethod"
-                        value="online"
-                        checked={paymentMethod === "online"}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                      />
-                      <label
-                        className="form-check-label small"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        <i className="fas fa-mobile-alt me-2"></i>
-                        Online Payment
-                      </label>
-                    </div>
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="radio"
-                        name="paymentMethod"
-                        value="over_the_counter"
-                        checked={paymentMethod === "over_the_counter"}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                      />
-                      <label
-                        className="form-check-label small"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        <i className="fas fa-store me-2"></i>
-                        Over the Counter
-                      </label>
+                      Pay securely using your GCash account. You will be
+                      redirected to complete the payment.
                     </div>
                   </div>
 
@@ -880,13 +941,17 @@ const MakePayment = () => {
                   <div className="border-top pt-3">
                     <div className="row g-2 mb-3">
                       <div className="col-6">
-                        <small style={{ color: "var(--text-muted)" }}>Base Amount</small>
+                        <small style={{ color: "var(--text-muted)" }}>
+                          Base Amount
+                        </small>
                         <div style={{ color: "var(--text-primary)" }}>
                           ₱{selectedBill.amount.toFixed(2)}
                         </div>
                       </div>
                       <div className="col-6">
-                        <small style={{ color: "var(--text-muted)" }}>Penalty</small>
+                        <small style={{ color: "var(--text-muted)" }}>
+                          Penalty
+                        </small>
                         <div style={{ color: "var(--danger-color)" }}>
                           ₱{selectedBill.penalty.toFixed(2)}
                         </div>
@@ -952,7 +1017,8 @@ const MakePayment = () => {
                     }}
                   >
                     <i className="fas fa-shield-alt me-2"></i>
-                    You will be redirected to PayMongo's secure payment page to complete your GCash payment.
+                    You will be redirected to PayMongo's secure payment page to
+                    complete your GCash payment.
                   </div>
                 </>
               )}
