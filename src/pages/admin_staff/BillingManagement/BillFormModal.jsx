@@ -116,11 +116,11 @@ const BillFormModal = ({ bill, customers, onClose, onSave, token }) => {
         }
       }
 
-      // Auto-calculate total payable
-      if (name === 'amount' || name === 'penalty') {
-        const amount = parseFloat(name === 'amount' ? newValue : prev.amount) || 0;
-        const penalty = parseFloat(name === 'penalty' ? newValue : prev.penalty) || 0;
-        newForm.total_payable = (amount + penalty).toFixed(2);
+      // Auto-calculate total payable from the base amount only.
+      // Overdue penalties (10%) are applied automatically on the backend.
+      if (name === 'amount') {
+        const amount = parseFloat(newValue || prev.amount) || 0;
+        newForm.total_payable = amount.toFixed(2);
       }
 
       setHasUnsavedChanges(checkFormChanges(newForm));
@@ -223,6 +223,7 @@ const BillFormModal = ({ bill, customers, onClose, onSave, token }) => {
         present_reading: parseFloat(formData.present_reading),
         consumption: parseFloat(formData.consumption || 0),
         amount: parseFloat(formData.amount),
+        // Penalty is managed automatically for overdue bills; keep it as-is (usually 0)
         penalty: parseFloat(formData.penalty || 0),
         total_payable: parseFloat(formData.total_payable || 0),
       };
@@ -596,7 +597,7 @@ const BillFormModal = ({ bill, customers, onClose, onSave, token }) => {
 
                         <div className="mb-3">
                           <label className="form-label small fw-semibold text-dark mb-1">
-                            Penalty
+                            Penalty (₱)
                           </label>
                           <input
                             type="number"
@@ -604,11 +605,13 @@ const BillFormModal = ({ bill, customers, onClose, onSave, token }) => {
                             className="form-control modal-smooth"
                             name="penalty"
                             value={formData.penalty}
-                            onChange={handleChange}
-                            disabled={loading}
+                            disabled
                             placeholder="0.00"
-                            style={{ backgroundColor: "#ffffff" }}
+                            style={{ backgroundColor: "#f8f9fa" }}
                           />
+                          <small className="text-muted">
+                            Penalty is applied automatically as 10% of the base amount when the bill becomes overdue.
+                          </small>
                         </div>
 
                         <div className="mb-3">

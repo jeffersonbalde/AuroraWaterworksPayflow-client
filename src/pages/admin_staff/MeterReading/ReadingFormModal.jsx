@@ -132,19 +132,19 @@ const ReadingFormModal = ({ reading, customers, customersLoading, onClose, onSav
               const calculatedAmount = calculateAmount(parseFloat(consumption), selectedCustomer.service);
               newForm.amount = calculatedAmount.toFixed(2);
               
-              // Recalculate total payable
-              const penalty = parseFloat(prev.penalty || 0);
-              newForm.total_payable = (calculatedAmount + penalty).toFixed(2);
+              // For new readings, total payable is just the base amount.
+              // Overdue penalties (10%) are applied automatically later when the
+              // account becomes overdue on the backend.
+              newForm.total_payable = calculatedAmount.toFixed(2);
             }
           }
         }
       }
 
-      // Auto-calculate total payable when amount or penalty changes
-      if (name === 'amount' || name === 'penalty') {
-        const amount = parseFloat(name === 'amount' ? newValue : prev.amount) || 0;
-        const penalty = parseFloat(name === 'penalty' ? newValue : prev.penalty) || 0;
-        newForm.total_payable = (amount + penalty).toFixed(2);
+      // Auto-calculate total payable when amount changes (penalty is automatic on backend)
+      if (name === 'amount') {
+        const amount = parseFloat(newValue || prev.amount) || 0;
+        newForm.total_payable = amount.toFixed(2);
       }
 
       setHasUnsavedChanges(checkFormChanges(newForm));
@@ -176,10 +176,9 @@ const ReadingFormModal = ({ reading, customers, customersLoading, onClose, onSav
         if (consumption > 0) {
           const calculatedAmount = calculateAmount(consumption, selectedCustomer.service);
           newForm.amount = calculatedAmount.toFixed(2);
-          
-          // Recalculate total payable
-          const penalty = parseFloat(prev.penalty || 0);
-          newForm.total_payable = (calculatedAmount + penalty).toFixed(2);
+
+          // For new readings, total payable is just the base amount.
+          newForm.total_payable = calculatedAmount.toFixed(2);
         }
       }
 
@@ -721,11 +720,13 @@ const ReadingFormModal = ({ reading, customers, customersLoading, onClose, onSav
                             className="form-control modal-smooth"
                             name="penalty"
                             value={formData.penalty}
-                            onChange={handleChange}
-                            disabled={loading}
+                            disabled
                             placeholder="0.00"
-                            style={{ backgroundColor: "#ffffff" }}
+                            style={{ backgroundColor: "#f8f9fa" }}
                           />
+                          <small className="text-muted">
+                            Penalty is applied automatically as 10% of the base amount when the bill becomes overdue.
+                          </small>
                         </div>
 
                         <div className="mb-3">
@@ -807,12 +808,18 @@ const ReadingFormModal = ({ reading, customers, customersLoading, onClose, onSav
                               <div className="fw-bold text-dark">₱{formData.amount || '0.00'}</div>
                             </div>
                             <div className="col-3">
-                              <small className="text-muted">Penalty</small>
-                              <div className="fw-bold text-danger">₱{formData.penalty || '0.00'}</div>
+                              <small className="text-muted">Penalty (if overdue)</small>
+                              <div className="fw-bold text-danger">
+                                ₱{(parseFloat(formData.amount || 0) * 0.10).toFixed(2)}
+                              </div>
                             </div>
                             <div className="col-3">
                               <small className="text-muted">Total Payable</small>
-                              <div className="fw-bold text-success">₱{formData.total_payable || '0.00'}</div>
+                              <div className="fw-bold text-success">
+                                ₱{(
+                                  (parseFloat(formData.amount || 0) * 1.10) || 0
+                                ).toFixed(2)}
+                              </div>
                             </div>
                           </div>
                         </div>
