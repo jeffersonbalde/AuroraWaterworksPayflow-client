@@ -156,23 +156,27 @@ const CollectionReports = () => {
       doc.text("SUMMARY", 14, startY);
 
       const totalCollected = reports.reduce(
-        (sum, report) => sum + report.total_collected,
+        (sum, report) => sum + (report.total_collected || 0),
         0
       );
       const totalCustomers = reports.reduce(
-        (sum, report) => sum + report.total_customers,
+        (sum, report) => sum + (report.total_customers || 0),
         0
       );
       const totalTransactions = reports.reduce(
-        (sum, report) => sum + report.total_transactions,
+        (sum, report) => sum + (report.total_transactions || 0),
         0
       );
       const onlineTotal = reports.reduce(
-        (sum, report) => sum + report.online_collections,
+        (sum, report) => sum + (report.online_collections || 0),
         0
       );
       const counterTotal = reports.reduce(
-        (sum, report) => sum + report.counter_collections,
+        (sum, report) => sum + (report.counter_collections || 0),
+        0
+      );
+      const totalCubicMeters = reports.reduce(
+        (sum, report) => sum + (report.total_cubic_meters || 0),
         0
       );
 
@@ -182,6 +186,7 @@ const CollectionReports = () => {
         ["Total Transactions", totalTransactions.toString()],
         ["Online Collections", formatPdfCurrency(onlineTotal)],
         ["Counter Collections", formatPdfCurrency(counterTotal)],
+        ["Total Cubic Meter Used", `${totalCubicMeters.toFixed(2)} m³`],
       ];
 
       autoTable(doc, {
@@ -206,10 +211,10 @@ const CollectionReports = () => {
       const tableData = reports.map((report) => [
         report.period,
         formatPdfCurrency(report.total_collected),
-        report.total_customers.toString(),
-        report.total_transactions.toString(),
         formatPdfCurrency(report.online_collections),
         formatPdfCurrency(report.counter_collections),
+        (report.total_customers || 0).toString(),
+        Number(report.total_cubic_meters || 0).toFixed(2) + " m³",
       ]);
 
       autoTable(doc, {
@@ -218,10 +223,10 @@ const CollectionReports = () => {
           [
             "Period",
             "Total Collected",
-            "Total Customers",
-            "Total Transactions",
             "Online Collections",
             "Counter Collections",
+            "Customers",
+            "Total Cubic Meter Used (m³)",
           ],
         ],
         body: tableData,
@@ -237,10 +242,10 @@ const CollectionReports = () => {
         columnStyles: {
           0: { cellWidth: 40 },
           1: { cellWidth: 30, halign: "right" },
-          2: { cellWidth: 25, halign: "right" },
-          3: { cellWidth: 25, halign: "right" },
-          4: { cellWidth: 30, halign: "right" },
-          5: { cellWidth: 30, halign: "right" },
+          2: { cellWidth: 30, halign: "right" },
+          3: { cellWidth: 30, halign: "right" },
+          4: { cellWidth: 25, halign: "right" },
+          5: { cellWidth: 35, halign: "right" },
         },
       });
 
@@ -560,15 +565,17 @@ const CollectionReports = () => {
 
   // Calculate statistics
   const totalCollections = reports.reduce(
-    (sum, report) => sum + report.total_collected,
+    (sum, report) => sum + (report.total_collected || 0),
     0
   );
   const totalCustomers = reports.reduce(
     (sum, report) => sum + report.total_customers,
     0
   );
-  const averageCollection =
-    reports.length > 0 ? totalCollections / reports.length : 0;
+  const totalCubicMeters = reports.reduce(
+    (sum, report) => sum + (report.total_cubic_meters || 0),
+    0
+  );
   const onlineCollections = reports.reduce(
     (sum, report) => sum + report.online_collections,
     0
@@ -986,13 +993,13 @@ const CollectionReports = () => {
                         className="text-xs fw-semibold text-uppercase mb-1"
                         style={{ color: "var(--success-color)" }}
                       >
-                        Avg. Collection
+                        Total Cubic Meter Used
                       </div>
                       <div
                         className="h4 mb-0 fw-bold"
                         style={{ color: "var(--success-color)" }}
                       >
-                        ₱{averageCollection.toFixed(2)}
+                        {totalCubicMeters.toFixed(2)} m³
                       </div>
                     </div>
                     <div className="col-auto">
@@ -1100,7 +1107,7 @@ const CollectionReports = () => {
                         <th className="small fw-semibold">Online</th>
                         <th className="small fw-semibold">Counter</th>
                         <th className="small fw-semibold">Customers</th>
-                        <th className="small fw-semibold">Avg. per Customer</th>
+                        <th className="small fw-semibold">Total Cubic Meter Used</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1156,7 +1163,7 @@ const CollectionReports = () => {
                           <td>
                             <div style={{ color: "var(--text-primary)" }}>
                               <div className="fw-medium">
-                                ₱{report.avg_per_customer?.toFixed(2) || "0.00"}
+                                {Number(report.total_cubic_meters || 0).toFixed(2)} m³
                               </div>
                             </div>
                           </td>
