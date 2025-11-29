@@ -137,7 +137,7 @@ const PaymentDetailsModal = ({ payment, customer, onClose }) => {
                     </div>
                     <div className="col-auto">
                       <div className="text-end">
-                        <div className="h4 text-success mb-1">₱{payment.amount_paid?.toFixed(2) || '0.00'}</div>
+                        <div className="h4 text-success mb-1">₱{(parseFloat(payment.amount_paid) || 0).toFixed(2)}</div>
                         <small className="text-muted">Amount Paid</small>
                       </div>
                     </div>
@@ -216,18 +216,18 @@ const PaymentDetailsModal = ({ payment, customer, onClose }) => {
                     <div className="card-body">
                       <div className="mb-3">
                         <label className="form-label small fw-semibold text-muted mb-1">Amount Paid</label>
-                        <p className="mb-0 fw-bold text-success">₱{payment.amount_paid?.toFixed(2) || '0.00'}</p>
+                        <p className="mb-0 fw-bold text-success">₱{(parseFloat(payment.amount_paid) || 0).toFixed(2)}</p>
                       </div>
                       {payment.balance !== undefined && (
                         <div className="mb-3">
                           <label className="form-label small fw-semibold text-muted mb-1">Balance</label>
-                          <p className="mb-0 fw-semibold text-dark">₱{payment.balance?.toFixed(2) || '0.00'}</p>
+                          <p className="mb-0 fw-semibold text-dark">₱{(parseFloat(payment.balance) || 0).toFixed(2)}</p>
                         </div>
                       )}
                       {payment.electronic_amount && (
                         <div className="mb-3">
                           <label className="form-label small fw-semibold text-muted mb-1">Electronic Amount</label>
-                          <p className="mb-0 fw-semibold text-dark">₱{payment.electronic_amount.toFixed(2)}</p>
+                          <p className="mb-0 fw-semibold text-dark">₱{(parseFloat(payment.electronic_amount) || 0).toFixed(2)}</p>
                         </div>
                       )}
                     </div>
